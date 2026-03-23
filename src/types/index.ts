@@ -1,0 +1,70 @@
+export interface Exercise {
+  id?: number;
+  remoteId?: string;
+  name: string;
+  category: 'push' | 'pull' | 'legs' | 'core' | 'cardio';
+  isBodyweight: boolean;
+  isCardio?: boolean; // true for swim, jog, etc. — uses duration/distance instead of sets
+  muscleGroup?: string;
+  distanceUnit?: string; // 'laps', 'km', 'miles'
+  syncStatus?: 'synced' | 'pending';
+}
+
+export interface Workout {
+  id?: number;
+  remoteId?: string;
+  userId?: string;
+  date: string; // ISO date
+  name: string;
+  notes?: string;
+  startedAt: string; // ISO datetime
+  completedAt?: string; // ISO datetime
+  syncStatus?: 'synced' | 'pending';
+}
+
+export interface WorkoutExercise {
+  id?: number;
+  remoteId?: string;
+  workoutId: number;
+  exerciseId: number;
+  order: number;
+  // Cardio fields (used instead of sets for cardio exercises)
+  durationMinutes?: number | null;
+  distance?: number | null; // laps, km, etc.
+  cardioNotes?: string;
+  syncStatus?: 'synced' | 'pending';
+}
+
+export interface ExerciseSet {
+  id?: number;
+  remoteId?: string;
+  workoutExerciseId: number;
+  setNumber: number;
+  weight: number | null; // kg, null for bodyweight
+  reps: number | null; // null for timed exercises
+  durationSeconds: number | null; // for planks, etc.
+  isBodyweight: boolean;
+  completed: boolean;
+  completedAt?: string;
+  syncStatus?: 'synced' | 'pending';
+}
+
+// Template for quick-start workouts
+export interface WorkoutTemplate {
+  name: string;
+  exerciseNames: string[];
+}
+
+// For "last time" display
+export interface LastPerformance {
+  date: string;
+  sets: Array<{
+    weight: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+    isBodyweight: boolean;
+  }>;
+  // Cardio last performance
+  durationMinutes?: number | null;
+  distance?: number | null;
+}
