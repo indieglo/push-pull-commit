@@ -153,14 +153,16 @@ function parseReps(raw: string): { reps: number[]; durationSeconds: number | nul
   const reps = parts
     .map(p => {
       const n = parseInt(p);
-      return isNaN(n) ? null : n;
+      if (isNaN(n)) return null;
+      // Fix spreadsheet auto-format: "8/8/2008" → the 2008 is a year, not reps
+      // Any rep count over 100 is almost certainly a year — extract last digit(s)
+      if (n > 100) return n % 100 || n % 10 || null;
+      return n;
     })
     .filter((n): n is number => n !== null);
 
   // Single number might be duration for timed exercises
   if (reps.length === 1 && !s.includes('/')) {
-    // Could be either reps or seconds depending on context
-    // We'll treat as reps by default; duration exercises have specific keywords
     return { reps, durationSeconds: null };
   }
 
