@@ -98,8 +98,9 @@ export function SettingsPage() {
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:text-white hover:border-brand-light transition-colors mb-3 disabled:opacity-50"
         >
           <Upload size={18} />
-          {importing ? 'Importing...' : 'Import Workout History'}
+          {importing ? 'Loading...' : 'Load Past Workouts'}
         </button>
+        <p className="text-xs text-gray-500 mb-2">Loads your pre-app workout history so you can see previous weights and reps.</p>
 
         {importResult && (
           <p className="text-sm text-gray-400 mb-3">{importResult}</p>
