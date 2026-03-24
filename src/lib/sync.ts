@@ -2,9 +2,13 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { db } from '../db/database';
 // Types used implicitly through db operations
 
+// Prevent concurrent sync runs
+let isSyncing = false;
+
 // Push all pending local changes to Supabase
 export async function pushToSupabase(userId: string) {
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || isSyncing) return;
+  isSyncing = true;
 
   try {
     await pushExercises(userId);
@@ -13,30 +17,53 @@ export async function pushToSupabase(userId: string) {
     await pushExerciseSets();
   } catch (err) {
     console.warn('Sync push failed (will retry later):', err);
+  } finally {
+    isSyncing = false;
   }
 }
 
 async function pushExercises(userId: string) {
   const pending = await db.exercises.where('syncStatus').equals('pending').toArray();
   for (const exercise of pending) {
-    const { data, error } = await supabase
-      .from('exercises')
-      .upsert({
-        id: exercise.remoteId || undefined,
-        user_id: userId,
-        name: exercise.name,
-        category: exercise.category,
-        is_bodyweight: exercise.isBodyweight,
-        muscle_group: exercise.muscleGroup,
-      }, { onConflict: 'id' })
-      .select()
-      .single();
+    if (exercise.remoteId) {
+      // Update existing
+      const { error } = await supabase
+        .from('exercises')
+        .update({
+          name: exercise.name,
+          category: exercise.category,
+          is_bodyweight: exercise.isBodyweight,
+          is_cardio: exercise.isCardio,
+          muscle_group: exercise.muscleGroup,
+          distance_unit: exercise.distanceUnit,
+        })
+        .eq('id', exercise.remoteId);
 
-    if (!error && data) {
-      await db.exercises.update(exercise.id!, {
-        remoteId: data.id,
-        syncStatus: 'synced',
-      });
+      if (!error) {
+        await db.exercises.update(exercise.id!, { syncStatus: 'synced' });
+      }
+    } else {
+      // Insert new
+      const { data, error } = await supabase
+        .from('exercises')
+        .insert({
+          user_id: userId,
+          name: exercise.name,
+          category: exercise.category,
+          is_bodyweight: exercise.isBodyweight,
+          is_cardio: exercise.isCardio,
+          muscle_group: exercise.muscleGroup,
+          distance_unit: exercise.distanceUnit,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        await db.exercises.update(exercise.id!, {
+          remoteId: data.id,
+          syncStatus: 'synced',
+        });
+      }
     }
   }
 }
@@ -44,25 +71,43 @@ async function pushExercises(userId: string) {
 async function pushWorkouts(userId: string) {
   const pending = await db.workouts.where('syncStatus').equals('pending').toArray();
   for (const workout of pending) {
-    const { data, error } = await supabase
-      .from('workouts')
-      .upsert({
-        id: workout.remoteId || undefined,
-        user_id: userId,
-        date: workout.date,
-        name: workout.name,
-        notes: workout.notes,
-        started_at: workout.startedAt,
-        completed_at: workout.completedAt,
-      }, { onConflict: 'id' })
-      .select()
-      .single();
+    if (workout.remoteId) {
+      // Update existing
+      const { error } = await supabase
+        .from('workouts')
+        .update({
+          date: workout.date,
+          name: workout.name,
+          notes: workout.notes,
+          started_at: workout.startedAt,
+          completed_at: workout.completedAt,
+        })
+        .eq('id', workout.remoteId);
 
-    if (!error && data) {
-      await db.workouts.update(workout.id!, {
-        remoteId: data.id,
-        syncStatus: 'synced',
-      });
+      if (!error) {
+        await db.workouts.update(workout.id!, { syncStatus: 'synced' });
+      }
+    } else {
+      // Insert new
+      const { data, error } = await supabase
+        .from('workouts')
+        .insert({
+          user_id: userId,
+          date: workout.date,
+          name: workout.name,
+          notes: workout.notes,
+          started_at: workout.startedAt,
+          completed_at: workout.completedAt,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        await db.workouts.update(workout.id!, {
+          remoteId: data.id,
+          syncStatus: 'synced',
+        });
+      }
     }
   }
 }
@@ -74,22 +119,44 @@ async function pushWorkoutExercises() {
     const exercise = await db.exercises.get(we.exerciseId);
     if (!workout?.remoteId || !exercise?.remoteId) continue;
 
-    const { data, error } = await supabase
-      .from('workout_exercises')
-      .upsert({
-        id: we.remoteId || undefined,
-        workout_id: workout.remoteId,
-        exercise_id: exercise.remoteId,
-        order: we.order,
-      }, { onConflict: 'id' })
-      .select()
-      .single();
+    if (we.remoteId) {
+      // Update existing
+      const { error } = await supabase
+        .from('workout_exercises')
+        .update({
+          order: we.order,
+          effort_rating: we.effortRating,
+          duration_minutes: we.durationMinutes,
+          distance: we.distance,
+          cardio_notes: we.cardioNotes,
+        })
+        .eq('id', we.remoteId);
 
-    if (!error && data) {
-      await db.workoutExercises.update(we.id!, {
-        remoteId: data.id,
-        syncStatus: 'synced',
-      });
+      if (!error) {
+        await db.workoutExercises.update(we.id!, { syncStatus: 'synced' });
+      }
+    } else {
+      // Insert new
+      const { data, error } = await supabase
+        .from('workout_exercises')
+        .insert({
+          workout_id: workout.remoteId,
+          exercise_id: exercise.remoteId,
+          order: we.order,
+          effort_rating: we.effortRating,
+          duration_minutes: we.durationMinutes,
+          distance: we.distance,
+          cardio_notes: we.cardioNotes,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        await db.workoutExercises.update(we.id!, {
+          remoteId: data.id,
+          syncStatus: 'synced',
+        });
+      }
     }
   }
 }
@@ -100,27 +167,47 @@ async function pushExerciseSets() {
     const we = await db.workoutExercises.get(set.workoutExerciseId);
     if (!we?.remoteId) continue;
 
-    const { data, error } = await supabase
-      .from('exercise_sets')
-      .upsert({
-        id: set.remoteId || undefined,
-        workout_exercise_id: we.remoteId,
-        set_number: set.setNumber,
-        weight: set.weight,
-        reps: set.reps,
-        duration_seconds: set.durationSeconds,
-        is_bodyweight: set.isBodyweight,
-        completed: set.completed,
-        completed_at: set.completedAt,
-      }, { onConflict: 'id' })
-      .select()
-      .single();
+    if (set.remoteId) {
+      // Update existing
+      const { error } = await supabase
+        .from('exercise_sets')
+        .update({
+          set_number: set.setNumber,
+          weight: set.weight,
+          reps: set.reps,
+          duration_seconds: set.durationSeconds,
+          is_bodyweight: set.isBodyweight,
+          completed: set.completed,
+          completed_at: set.completedAt,
+        })
+        .eq('id', set.remoteId);
 
-    if (!error && data) {
-      await db.exerciseSets.update(set.id!, {
-        remoteId: data.id,
-        syncStatus: 'synced',
-      });
+      if (!error) {
+        await db.exerciseSets.update(set.id!, { syncStatus: 'synced' });
+      }
+    } else {
+      // Insert new
+      const { data, error } = await supabase
+        .from('exercise_sets')
+        .insert({
+          workout_exercise_id: we.remoteId,
+          set_number: set.setNumber,
+          weight: set.weight,
+          reps: set.reps,
+          duration_seconds: set.durationSeconds,
+          is_bodyweight: set.isBodyweight,
+          completed: set.completed,
+          completed_at: set.completedAt,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        await db.exerciseSets.update(set.id!, {
+          remoteId: data.id,
+          syncStatus: 'synced',
+        });
+      }
     }
   }
 }
@@ -145,7 +232,9 @@ export async function pullFromSupabase(userId: string) {
             name: re.name,
             category: re.category,
             isBodyweight: re.is_bodyweight,
+            isCardio: re.is_cardio,
             muscleGroup: re.muscle_group,
+            distanceUnit: re.distance_unit,
             syncStatus: 'synced',
           });
         }

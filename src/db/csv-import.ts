@@ -1,94 +1,15 @@
 import { db } from './database';
 
-// CSV data embedded from the user's workout logs
-const PHASE_1_CSV = `Week,Day,Date,Workout,Exercise,Weight,Sets,Reps or Time,Notes
-1,Mon,Aug 25,Strength A,Dumbbell Bench Press,15kg,3,,felt a bit easy
-,,,,Seated Cable Row,25kg,3,,challenging
-,,,,Push-Ups,BW,3,,"challenging,but could have done a couple more with bad form."
-,,,,Plank,BW,1,,hard to keep form
-,,,,Bird-Dog,BW,3,,challenging
-,Wed,Aug 27,Strength B,Bodyweight Squats,BW,3,15/15/15,not too hard
-,,,,Lat Pulldown,35kg,3,"12,/15/15",not too hard
-,,,,Glute Bridges,BW,3,15/15/15,easy
-,,,,Dumbbell Bicep Curls,7.5kg each,3,12/12/12 both,challenging
-,,,,Dead Bug,BW,3,20/20/20,challenging
-,Fri,Aug 29,Swimming,Freestyle Swim,,20 laps,20 minutes,Could have done a few more minutes but was running late
-2,Mon,Sep 1,Strength A,Dumbbell Bench Press,17.5kg,3,8/8/8,challenging. last rep was hard.
-,,,,Seated Cable Row,25kg,3,12/10/10,had to adjust the machine a bit. kind of challenging.
-,,,,Push-Ups,BW,3,13/11/12,hard
-,,,,Plank,BW,1,45,quite hard
-,,,,Bird-Dog,BW,3,10/10/10,
-,Wed,Sep 3,Strength B,Bodyweight Squats,BW,3,12/12/12,challenging butngood
-,,,,Lat Pulldown,40kg,3,10/11/10,very hard
-,,,,Glute Bridges,15kg,3,15/15/15,challenging
-,,,,Dumbbell Bicep Curls,7.5kg each,3,12/12/12,challenging
-,,,,Dead Bug,BW,3,10/10/10,not bad
-,Fri,Sep 5,Swimming,Freestyle Swim,,26 laps,26 minutes,Was tired from a busy day gardening the day before
-3,Mon,Sep 8,Strength A,Dumbbell Bench Press,20kg,3,10/10/10,hard
-,,,,Seated Cable Row,30kg,3,10/10/10,challenging
-,,,,Push-Ups,BW,3,15/12/11,hard
-,,,,Plank,BW,1,55 seconds,hard
-,,,,Bird-Dog,BW,3,8/15/15,challenging
-,Wed,Sep 10,Strength B,Bodyweight Squats,10kg,3,15/12/15,not bad
-,,,,Lat Pulldown,44kg,3,10/10/10,hard
-,,,,Glute Bridges,15kg,3,15/15/15,not bad
-,,,,Dumbbell Bicep Curls,7.5kg each,3,12/12/12,not bad
-,,,,Dead Bug,BW,3,10/10/10 per side,
-,Fri,Sep 12,Swimming,Freestyle Swim,,35 laps,30 minutes,hard
-4,Mon,Sep 15,Strength A,Dumbbell Bench Press,20kg,3,8/8/8,hard
-,,,,Seated Cable Row,35kg,3,10/10/10,hard
-,,,,Push-Ups,BW,3,15/14/8,hard
-,,,,Plank,BW,1,1:00,hard
-,,,,Bird-Dog,BW,3,10/15/15,not bad
-,Wed,Sep 17,Strength B,Bodyweight Squats,BW,3,15/15/15,challenging
-,,,,Lat Pulldown,44kg,3,15/12/9,hard
-,,,,Glute Bridges,BW,3,15/15/15,challenging
-,,,,Dumbbell Bicep Curls,8kg,3,15/15/15,hard
-,,,,Dead Bug,BW,3,10/10/10,
-,Fri,Sep 19,Swimming,Freestyle Swim,,40 laps,30 minutes,totally gassed. nearly vomited and fainted on walk home.`;
-
-const PHASE_2_CSV = `Week,Day,Date,Workout,Exercise,Weight,Sets,Reps or Time,Notes
-1,Mon,Aug 25,Strength A,Dumbbell Bench Press,22.5kg,3,6/8/6,very hard
-,,,,Goblet Squats,10kg,3,12/12/12,challenging
-,,,,Push-Ups,BW,3,14/15/10,challenging
-,,,,Face Pulls,23kg,3,12/12/12,hard
-,,,,Side Plank,BW,3,30 secs each side,
-,Wed,Aug 27,Strength B,Lat Pulldown,44kg,3,10/10/10,challenging
-,,,,Dumbbell Romanian Deadlifts,10kg each,3,12/12/12,not too bad
-,,,,Single Arm Dumbbell Row,12.5kg,3,12/12/12,not too bad
-,,,,Dumbbell Bicep Curls,10kg each,3,10/10/10,not bad
-,,,,Bird-Dog,BW,3,30/24/24,not bad
-,Fri,Aug 29,Swimming,Freestyle Swim,,,holiday fun run,
-2,Mon,Sep 1,Strength A,Dumbbell Bench Press,22.5kg,3,10/8/6,hard
-,,,,Goblet Squats,12.5kg,3,14/12/12,challenging
-,,,,Push-Ups,BW,3,15/15/10,hard
-,,,,Face Pulls,23kg,3,15/12/12,hard
-,,,,Side Plank,BW,3,:30 each side,challenging
-,Wed,Sep 3,Strength B,Lat Pulldown,44kg,3,12/10/8,hard
-,,,,Dumbbell Romanian Deadlifts,10kg,3,15/15/15,easy
-,,,,Single Arm Dumbbell Row,12.5kg,3,12 each side,not bad
-,,,,Dumbbell Bicep Curls,10kg,3,12/12/12,challenging
-,,,,Bird-Dog,BW,3,12/12/12,not bad
-3,Wed,Oct 15,Strength A,Dumbbell Bench Press,22.5kg,3,8/8/8,hard
-,,,,Goblet Squats,10kg,3,12/12/12,challenging
-,,,,Push-Ups,BW,3,15/15/8,hard
-,,,,Face Pulls,25kg,3,13/15/15,hard
-,,,,Side Plank,BW,3,30 sec,challenging
-,Wed,Sep 10,Strength B,Lat Pulldown,44kg,3,12/12/12,challenging
-,,,,Dumbbell Romanian Deadlifts,12.5kg,3,12/15/8,challenging
-,,,,Single Arm Dumbbell Row,15kg,3,12/12/12,challenging
-,,,,Dumbbell Bicep Curls,12.5kg,3,8/8/8,hard
-,,,,Bird-Dog,BW,3,10/10/10,not bad
-4,Mon,Nov 10,Strength A,Dumbbell Bench Press,22.5kg,3,10/8/6,hard
-,,,,Goblet Squats,10kg,3,15/15/15,not bad
-,,,,Push-Ups,BW,3,15/15/15,challenging
-,,,,Face Pulls,25kg,3,12/15/15,not bad
-,,,,Side Plank,BW,3,30 sec,challenging
-,Wed,Nov 12,Strength B,Lat Pulldown,44kg,3,12/12/10,challenging
-,,,,Dumbbell Romanian Deadlifts,12.5kg,3,15/15/15,challenging
-,,,,Single Arm Dumbbell Row,17.5kg,3,10/10/10,hard
-,,,,Dumbbell Bicep Curls,12.5kg,3,9/8/8,hard
-,,,,Bird-Dog,BW,3,12/12/12,not bad`;
+/**
+ * CSV Import for workout history
+ *
+ * Expected CSV format:
+ * Week,Day,Date,Workout,Exercise,Weight,Sets,Reps or Time,Notes
+ *
+ * - Weight: "BW" for bodyweight, "20kg", "7.5kg each", etc.
+ * - Reps or Time: "12/12/12" for rep splits, "45 seconds", "1:00", "20 laps", etc.
+ * - Empty cells are filled down from the row above (for Date, Workout, Exercise)
+ */
 
 interface ParsedSet {
   exerciseName: string;
@@ -295,7 +216,7 @@ function parseCSV(csv: string, year: number): ParsedWorkout[] {
   return workouts;
 }
 
-// Normalize exercise names to match our seed data
+// Normalize exercise names to match common naming
 function normalizeExerciseName(name: string): string {
   const map: Record<string, string> = {
     'dumbbell bench press': 'Dumbbell Bench Press',
@@ -316,15 +237,18 @@ function normalizeExerciseName(name: string): string {
     'side plank': 'Side Plank',
     'dumbbell romanian deadlifts': 'Dumbbell Romanian Deadlifts',
     'single arm dumbbell row': 'Single Arm Dumbbell Row',
+    'jogging': 'Jogging',
   };
   return map[name.toLowerCase()] || name;
 }
 
-export async function importCSVData(): Promise<{ workouts: number; sets: number }> {
-  // Parse both phases
-  const phase1Workouts = parseCSV(PHASE_1_CSV, 2025);
-  const phase2Workouts = parseCSV(PHASE_2_CSV, 2025);
-  const allWorkouts = [...phase1Workouts, ...phase2Workouts];
+/**
+ * Import workout data from a CSV string.
+ * @param csvText - Raw CSV content
+ * @param year - The year these workouts took place (used for date parsing)
+ */
+export async function importCSVData(csvText: string, year: number = 2025): Promise<{ workouts: number; sets: number }> {
+  const allWorkouts = parseCSV(csvText, year);
 
   let totalWorkouts = 0;
   let totalSets = 0;

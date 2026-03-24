@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/database';
 import { ExerciseCard } from './ExerciseCard';
@@ -7,7 +7,7 @@ import { CardioCard } from './CardioCard';
 import { AddExerciseSheet } from './AddExerciseSheet';
 import { RestTimer } from './RestTimer';
 import { useTimer } from '../../hooks/useTimer';
-import type { ExerciseSet, WorkoutExercise } from '../../types';
+import type { ExerciseSet, WorkoutExercise, EffortRating } from '../../types';
 
 interface ActiveWorkoutProps {
   workoutExercises: WorkoutExercise[];
@@ -40,6 +40,8 @@ export function ActiveWorkout({
 }: ActiveWorkoutProps) {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
+  const [incompleteSummary, setIncompleteSummary] = useState<string[]>([]);
   const timer = useTimer(90);
 
   // Load exercises from DB for display
@@ -51,6 +53,38 @@ export function ActiveWorkout({
 
   const completedSets = allSets.filter(s => s.completed).length;
   const totalSets = allSets.length;
+
+  const handleFinish = () => {
+    // Check for incomplete sets
+    const issues: string[] = [];
+
+    for (const we of workoutExercises) {
+      const exercise = exercises.find(e => e.id === we.exerciseId);
+      if (!exercise || exercise.isCardio) continue;
+
+      const weSets = allSets.filter(s => s.workoutExerciseId === we.id);
+      const incomplete = weSets.filter(s => !s.completed);
+      const missingReps = weSets.filter(s => s.completed && (s.reps === null || s.reps === 0));
+
+      if (incomplete.length > 0) {
+        issues.push(`${exercise.name}: ${incomplete.length} set${incomplete.length > 1 ? 's' : ''} not checked off`);
+      }
+      if (missingReps.length > 0) {
+        issues.push(`${exercise.name}: ${missingReps.length} set${missingReps.length > 1 ? 's' : ''} missing reps`);
+      }
+    }
+
+    if (issues.length > 0) {
+      setIncompleteSummary(issues);
+      setShowIncompleteWarning(true);
+    } else {
+      onFinish();
+    }
+  };
+
+  const handleUpdateEffort = (weId: number, rating: EffortRating) => {
+    onUpdateWorkoutExercise(weId, { effortRating: rating });
+  };
 
   return (
     <div className="pb-4">
@@ -105,6 +139,7 @@ export function ActiveWorkout({
             onAddSet={() => onAddSet(we.id!)}
             onRemove={() => onRemoveExercise(we.id!)}
             onTimerStart={() => timer.start(90)}
+            onUpdateEffort={(rating) => handleUpdateEffort(we.id!, rating)}
           />
         );
       })}
@@ -127,12 +162,44 @@ export function ActiveWorkout({
           Cancel
         </button>
         <button
-          onClick={onFinish}
+          onClick={handleFinish}
           className="flex-1 py-3 rounded-xl bg-success text-white font-semibold hover:bg-success/90 transition-colors"
         >
           Finish Workout
         </button>
       </div>
+
+      {/* Incomplete sets warning */}
+      {showIncompleteWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowIncompleteWarning(false)} />
+          <div className="relative bg-surface rounded-2xl p-6 max-w-sm w-full">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle size={20} className="text-yellow-400" />
+              <h3 className="text-lg font-semibold text-white">Incomplete Sets</h3>
+            </div>
+            <ul className="text-sm text-gray-400 mb-4 space-y-1">
+              {incompleteSummary.map((issue, i) => (
+                <li key={i}>• {issue}</li>
+              ))}
+            </ul>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowIncompleteWarning(false)}
+                className="flex-1 py-2.5 rounded-lg border border-gray-600 text-gray-300"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={() => { setShowIncompleteWarning(false); onFinish(); }}
+                className="flex-1 py-2.5 rounded-lg bg-yellow-500 text-black font-medium"
+              >
+                Finish Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancel confirmation */}
       {showCancelConfirm && (

@@ -1,5 +1,5 @@
 import { Settings, LogOut, Upload, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { syncAll } from '../lib/sync';
 import { importCSVData } from '../db/csv-import';
@@ -10,6 +10,7 @@ export function SettingsPage() {
   const [syncing, setSyncing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSync = async () => {
     if (!user) return;
@@ -23,16 +24,26 @@ export function SettingsPage() {
     setSyncing(false);
   };
 
-  const handleImport = async () => {
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     setImporting(true);
     setImportResult(null);
     try {
-      const result = await importCSVData();
-      setImportResult(`Imported ${result.workouts} workouts with ${result.sets} sets`);
+      const csvText = await file.text();
+      const result = await importCSVData(csvText);
+      setImportResult(`Imported ${result.workouts} workouts with ${result.sets} sets from ${file.name}`);
     } catch (err) {
       setImportResult(`Import failed: ${err}`);
     }
     setImporting(false);
+    // Reset input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleClearData = async () => {
@@ -92,15 +103,22 @@ export function SettingsPage() {
       <div className="bg-surface rounded-xl p-4 mb-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Data</h2>
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleFileSelected}
+          className="hidden"
+        />
         <button
-          onClick={handleImport}
+          onClick={handleImportClick}
           disabled={importing}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:text-white hover:border-brand-light transition-colors mb-3 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:text-white hover:border-brand-light transition-colors mb-1 disabled:opacity-50"
         >
           <Upload size={18} />
-          {importing ? 'Loading...' : 'Load Past Workouts'}
+          {importing ? 'Importing...' : 'Import Workout CSV'}
         </button>
-        <p className="text-xs text-gray-500 mb-2">Loads your pre-app workout history so you can see previous weights and reps.</p>
+        <p className="text-xs text-gray-500 mb-3">Import workout history from a CSV file. See README for format details.</p>
 
         {importResult && (
           <p className="text-sm text-gray-400 mb-3">{importResult}</p>

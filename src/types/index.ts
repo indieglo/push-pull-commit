@@ -22,12 +22,15 @@ export interface Workout {
   syncStatus?: 'synced' | 'pending';
 }
 
+export type EffortRating = 'easy' | 'challenging' | 'hard';
+
 export interface WorkoutExercise {
   id?: number;
   remoteId?: string;
   workoutId: number;
   exerciseId: number;
   order: number;
+  effortRating?: EffortRating | null;
   // Cardio fields (used instead of sets for cardio exercises)
   durationMinutes?: number | null;
   distance?: number | null; // laps, km, etc.
@@ -64,6 +67,7 @@ export interface LastPerformance {
     durationSeconds: number | null;
     isBodyweight: boolean;
   }>;
+  effortRating?: EffortRating | null;
   // Cardio last performance
   durationMinutes?: number | null;
   distance?: number | null;

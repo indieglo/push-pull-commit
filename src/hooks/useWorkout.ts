@@ -241,6 +241,7 @@ export async function getLastPerformance(exerciseId: number): Promise<LastPerfor
       durationSeconds: s.durationSeconds,
       isBodyweight: s.isBodyweight,
     })),
+    effortRating: we.effortRating,
   };
 }
 
