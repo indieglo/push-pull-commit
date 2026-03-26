@@ -21,6 +21,7 @@ export function WorkoutPage() {
     addSet,
     updateSet,
     updateWorkoutExercise,
+    reorderExercise,
     deleteSet,
     removeExercise,
     completeSet,
@@ -57,6 +58,7 @@ export function WorkoutPage() {
         onAddSet={addSet}
         onAddExercise={addExerciseToWorkout}
         onRemoveExercise={removeExercise}
+        onReorderExercise={reorderExercise}
         onUpdateWorkoutExercise={updateWorkoutExercise}
         onFinish={finishWorkout}
         onCancel={cancelWorkout}

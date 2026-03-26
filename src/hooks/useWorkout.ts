@@ -185,6 +185,20 @@ export function useWorkout() {
     localStorage.removeItem('activeWorkoutId');
   }, [activeWorkoutId]);
 
+  const reorderExercise = useCallback(async (workoutExerciseId: number, direction: 'up' | 'down') => {
+    const sorted = [...workoutExercises].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex(we => we.id === workoutExerciseId);
+    if (idx < 0) return;
+
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    const current = sorted[idx];
+    const swap = sorted[swapIdx];
+    await db.workoutExercises.update(current.id!, { order: swap.order, syncStatus: 'pending' as const });
+    await db.workoutExercises.update(swap.id!, { order: current.order, syncStatus: 'pending' as const });
+  }, [workoutExercises]);
+
   const updateWorkoutExercise = useCallback(async (weId: number, updates: Partial<WorkoutExercise>) => {
     await db.workoutExercises.update(weId, { ...updates, syncStatus: 'pending' });
   }, []);
@@ -199,6 +213,7 @@ export function useWorkout() {
     addSet,
     updateSet,
     updateWorkoutExercise,
+    reorderExercise,
     deleteSet,
     removeExercise,
     completeSet,

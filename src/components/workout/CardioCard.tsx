@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronUp, Timer, MapPin } from 'lucide-react';
+import { X, ChevronUp, Timer, MapPin, ArrowUp, ArrowDown } from 'lucide-react';
 import { NumericInput } from '../common/NumericInput';
 import { getLastCardioPerformance } from '../../hooks/useWorkout';
 import type { Exercise, WorkoutExercise, LastPerformance } from '../../types';
@@ -9,10 +9,13 @@ interface CardioCardProps {
   workoutExercise: WorkoutExercise;
   onUpdate: (updates: Partial<WorkoutExercise>) => void;
   onRemove: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
-export function CardioCard({ exercise, workoutExercise, onUpdate, onRemove }: CardioCardProps) {
+export function CardioCard({ exercise, workoutExercise, onUpdate, onRemove, onMoveUp, onMoveDown }: CardioCardProps) {
   const [lastPerf, setLastPerf] = useState<LastPerformance | null>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const distanceUnit = exercise.distanceUnit || 'km';
 
   useEffect(() => {
@@ -23,13 +26,45 @@ export function CardioCard({ exercise, workoutExercise, onUpdate, onRemove }: Ca
     <div className="bg-surface rounded-xl p-4 mb-3">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-white">{exercise.name}</h3>
-        <button
-          onClick={onRemove}
-          className="p-1 text-gray-500 hover:text-danger transition-colors"
-        >
-          <X size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          {onMoveUp && (
+            <button onClick={onMoveUp} className="p-1 text-gray-500 hover:text-white transition-colors">
+              <ArrowUp size={16} />
+            </button>
+          )}
+          {onMoveDown && (
+            <button onClick={onMoveDown} className="p-1 text-gray-500 hover:text-white transition-colors">
+              <ArrowDown size={16} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowRemoveConfirm(true)}
+            className="p-1 text-gray-500 hover:text-danger transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
+
+      {showRemoveConfirm && (
+        <div className="mb-3 p-3 bg-danger/10 border border-danger/30 rounded-lg">
+          <p className="text-sm text-gray-300 mb-2">Remove {exercise.name}?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowRemoveConfirm(false)}
+              className="flex-1 text-xs py-1.5 rounded-lg border border-gray-600 text-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onRemove}
+              className="flex-1 text-xs py-1.5 rounded-lg bg-danger text-white"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
 
       {lastPerf && (lastPerf.durationMinutes || lastPerf.distance) && (
         <div className="text-xs text-gray-400 mb-3 flex items-center gap-1">

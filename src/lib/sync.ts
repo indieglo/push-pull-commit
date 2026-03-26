@@ -34,6 +34,7 @@ async function pushExercises(userId: string) {
           category: exercise.category,
           is_bodyweight: exercise.isBodyweight,
           is_cardio: exercise.isCardio,
+          is_unilateral: exercise.isUnilateral,
           muscle_group: exercise.muscleGroup,
           distance_unit: exercise.distanceUnit,
         })
@@ -52,6 +53,7 @@ async function pushExercises(userId: string) {
           category: exercise.category,
           is_bodyweight: exercise.isBodyweight,
           is_cardio: exercise.isCardio,
+          is_unilateral: exercise.isUnilateral,
           muscle_group: exercise.muscleGroup,
           distance_unit: exercise.distanceUnit,
         })
@@ -233,6 +235,7 @@ export async function pullFromSupabase(userId: string) {
             category: re.category,
             isBodyweight: re.is_bodyweight,
             isCardio: re.is_cardio,
+            isUnilateral: re.is_unilateral,
             muscleGroup: re.muscle_group,
             distanceUnit: re.distance_unit,
             syncStatus: 'synced',

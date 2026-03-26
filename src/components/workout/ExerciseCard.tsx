@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, ChevronUp, TrendingUp, Minus, Equal } from 'lucide-react';
+import { Plus, X, ChevronUp, ArrowUp, ArrowDown, TrendingUp, Minus, Equal } from 'lucide-react';
 import { SetRow } from './SetRow';
 import { getLastPerformance } from '../../hooks/useWorkout';
 import type { Exercise, ExerciseSet, WorkoutExercise, LastPerformance, EffortRating } from '../../types';
@@ -13,6 +13,8 @@ interface ExerciseCardProps {
   onDeleteSet: (setId: number) => void;
   onAddSet: () => void;
   onRemove: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   onTimerStart: () => void;
   onUpdateEffort: (rating: EffortRating) => void;
 }
@@ -20,7 +22,7 @@ interface ExerciseCardProps {
 // Exercises that use duration (seconds) instead of reps
 const TIMED_EXERCISES = ['plank', 'side plank'];
 
-function getWeightRecommendation(lastPerf: LastPerformance | null): { text: string; icon: 'up' | 'same' | 'down' } | null {
+function getWeightRecommendation(lastPerf: LastPerformance | null, isBodyweight: boolean): { text: string; icon: 'up' | 'same' | 'down' } | null {
   if (!lastPerf || !lastPerf.sets.length) return null;
 
   const effort = lastPerf.effortRating;
@@ -28,28 +30,34 @@ function getWeightRecommendation(lastPerf: LastPerformance | null): { text: stri
   if (!completedSets.length) return null;
 
   const avgReps = completedSets.reduce((sum, s) => sum + (s.reps ?? 0), 0) / completedSets.length;
+  const allBW = isBodyweight && completedSets.every(s => s.isBodyweight);
 
-  // Hard: always keep weight (unless very low reps → consider lowering)
+  // For pure bodyweight exercises, say "reps" instead of "weight"
+  const upText = allBW ? 'Increase reps or add weight' : 'Increase weight';
+  const downText = allBW ? 'Consider fewer reps or easier variation' : 'Consider lowering weight';
+  const keepText = allBW ? 'Keep current reps' : 'Keep weight';
+
+  // Hard: always keep (unless very low reps → consider lowering)
   if (effort === 'hard') {
     if (avgReps < 8) {
-      return { text: 'Consider lowering weight', icon: 'down' };
+      return { text: downText, icon: 'down' };
     }
-    return { text: 'Keep weight', icon: 'same' };
+    return { text: keepText, icon: 'same' };
   }
 
-  // Easy: always increase weight
+  // Easy: always increase
   if (effort === 'easy') {
-    return { text: 'Increase weight', icon: 'up' };
+    return { text: upText, icon: 'up' };
   }
 
   // Challenging (or no rating): depends on rep count
   if (avgReps >= 12) {
-    return { text: 'Try increasing weight', icon: 'up' };
+    return { text: allBW ? 'Try adding weight' : 'Try increasing weight', icon: 'up' };
   }
   if (avgReps < 8) {
-    return { text: 'Consider lowering weight', icon: 'down' };
+    return { text: downText, icon: 'down' };
   }
-  return { text: 'Keep weight', icon: 'same' };
+  return { text: keepText, icon: 'same' };
 }
 
 const EFFORT_OPTIONS: { value: EffortRating; label: string; color: string; activeColor: string }[] = [
@@ -67,10 +75,13 @@ export function ExerciseCard({
   onDeleteSet,
   onAddSet,
   onRemove,
+  onMoveUp,
+  onMoveDown,
   onTimerStart,
   onUpdateEffort,
 }: ExerciseCardProps) {
   const [lastPerf, setLastPerf] = useState<LastPerformance | null>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const isTimed = TIMED_EXERCISES.includes(exercise.name.toLowerCase());
 
   useEffect(() => {
@@ -78,19 +89,52 @@ export function ExerciseCard({
   }, [workoutExercise.exerciseId]);
 
   const sortedSets = [...sets].sort((a, b) => a.setNumber - b.setNumber);
-  const recommendation = getWeightRecommendation(lastPerf);
+  const recommendation = getWeightRecommendation(lastPerf, exercise.isBodyweight);
 
   return (
     <div className="bg-surface rounded-xl p-4 mb-3">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-white">{exercise.name}</h3>
-        <button
-          onClick={onRemove}
-          className="p-1 text-gray-500 hover:text-danger transition-colors"
-        >
-          <X size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          {onMoveUp && (
+            <button onClick={onMoveUp} className="p-1 text-gray-500 hover:text-white transition-colors">
+              <ArrowUp size={16} />
+            </button>
+          )}
+          {onMoveDown && (
+            <button onClick={onMoveDown} className="p-1 text-gray-500 hover:text-white transition-colors">
+              <ArrowDown size={16} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowRemoveConfirm(true)}
+            className="p-1 text-gray-500 hover:text-danger transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
+
+      {/* Remove confirmation */}
+      {showRemoveConfirm && (
+        <div className="mb-3 p-3 bg-danger/10 border border-danger/30 rounded-lg">
+          <p className="text-sm text-gray-300 mb-2">Remove {exercise.name}?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowRemoveConfirm(false)}
+              className="flex-1 text-xs py-1.5 rounded-lg border border-gray-600 text-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onRemove}
+              className="flex-1 text-xs py-1.5 rounded-lg bg-danger text-white"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Last performance + recommendation */}
       {lastPerf && lastPerf.sets.length > 0 && (
@@ -105,6 +149,7 @@ export function ExerciseCard({
                 if (s.isBodyweight && !s.weight) return `${s.reps}`;
                 return `${s.reps}${s.weight ? `@${s.weight}kg` : ''}`;
               }).join(' / ')}
+              {exercise.isUnilateral && <span className="text-brand-light ml-0.5">/side</span>}
               {lastPerf.effortRating && (
                 <span className={`ml-1 ${
                   lastPerf.effortRating === 'easy' ? 'text-success' :
@@ -145,11 +190,14 @@ export function ExerciseCard({
       </div>
 
       {/* Header row */}
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 px-1">
-        <span className="w-6 text-center">Set</span>
-        <span className="w-24 text-center">Weight</span>
-        <span className="w-24 text-center">{isTimed ? 'Time' : 'Reps'}</span>
-        <span className="w-10"></span>
+      <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1 px-1">
+        <span className="w-5 text-center">Set</span>
+        <span className="w-20 text-center">Weight</span>
+        <span className="w-20 text-center">
+          {isTimed ? 'Time' : 'Reps'}
+          {exercise.isUnilateral && <span className="text-brand-light ml-0.5">/side</span>}
+        </span>
+        <span className="w-9"></span>
         <span className="w-8"></span>
       </div>
 

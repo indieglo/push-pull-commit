@@ -9,9 +9,9 @@ const SEED_EXERCISES: Omit<Exercise, 'id'>[] = [
   // Pull
   { name: 'Seated Cable Row', category: 'pull', isBodyweight: false, muscleGroup: 'back', syncStatus: 'pending' },
   { name: 'Lat Pulldown', category: 'pull', isBodyweight: false, muscleGroup: 'back', syncStatus: 'pending' },
-  { name: 'Single Arm Dumbbell Row', category: 'pull', isBodyweight: false, muscleGroup: 'back', syncStatus: 'pending' },
+  { name: 'Single Arm Dumbbell Row', category: 'pull', isBodyweight: false, isUnilateral: true, muscleGroup: 'back', syncStatus: 'pending' },
   { name: 'Face Pulls', category: 'pull', isBodyweight: false, muscleGroup: 'shoulders', syncStatus: 'pending' },
-  { name: 'Dumbbell Bicep Curls', category: 'pull', isBodyweight: false, muscleGroup: 'arms', syncStatus: 'pending' },
+  { name: 'Dumbbell Bicep Curls', category: 'pull', isBodyweight: false, isUnilateral: true, muscleGroup: 'arms', syncStatus: 'pending' },
 
   // Legs
   { name: 'Bodyweight Squats', category: 'legs', isBodyweight: true, muscleGroup: 'quads', syncStatus: 'pending' },
@@ -21,8 +21,8 @@ const SEED_EXERCISES: Omit<Exercise, 'id'>[] = [
 
   // Core
   { name: 'Plank', category: 'core', isBodyweight: true, muscleGroup: 'core', syncStatus: 'pending' },
-  { name: 'Side Plank', category: 'core', isBodyweight: true, muscleGroup: 'core', syncStatus: 'pending' },
-  { name: 'Bird-Dog', category: 'core', isBodyweight: true, muscleGroup: 'core', syncStatus: 'pending' },
+  { name: 'Side Plank', category: 'core', isBodyweight: true, isUnilateral: true, muscleGroup: 'core', syncStatus: 'pending' },
+  { name: 'Bird-Dog', category: 'core', isBodyweight: true, isUnilateral: true, muscleGroup: 'core', syncStatus: 'pending' },
   { name: 'Dead Bug', category: 'core', isBodyweight: true, muscleGroup: 'core', syncStatus: 'pending' },
 
   // Cardio

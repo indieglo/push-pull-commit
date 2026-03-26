@@ -13,6 +13,7 @@ create table if not exists exercises (
   category text not null check (category in ('push', 'pull', 'legs', 'core', 'cardio')),
   is_bodyweight boolean default false,
   is_cardio boolean default false,
+  is_unilateral boolean default false,
   muscle_group text,
   distance_unit text, -- 'laps', 'km', 'miles'
   created_at timestamptz default now()

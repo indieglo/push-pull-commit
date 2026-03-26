@@ -5,6 +5,7 @@ export interface Exercise {
   category: 'push' | 'pull' | 'legs' | 'core' | 'cardio';
   isBodyweight: boolean;
   isCardio?: boolean; // true for swim, jog, etc. — uses duration/distance instead of sets
+  isUnilateral?: boolean; // true for exercises done per side (bird dogs, curls, etc.)
   muscleGroup?: string;
   distanceUnit?: string; // 'laps', 'km', 'miles'
   syncStatus?: 'synced' | 'pending';

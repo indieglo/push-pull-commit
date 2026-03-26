@@ -18,6 +18,7 @@ interface ActiveWorkoutProps {
   onAddSet: (workoutExerciseId: number) => void;
   onAddExercise: (exerciseId: number) => void;
   onRemoveExercise: (workoutExerciseId: number) => void;
+  onReorderExercise: (workoutExerciseId: number, direction: 'up' | 'down') => void;
   onUpdateWorkoutExercise: (weId: number, updates: Partial<WorkoutExercise>) => void;
   onFinish: () => void;
   onCancel: () => void;
@@ -33,6 +34,7 @@ export function ActiveWorkout({
   onAddSet,
   onAddExercise,
   onRemoveExercise,
+  onReorderExercise,
   onUpdateWorkoutExercise,
   onFinish,
   onCancel,
@@ -95,6 +97,9 @@ export function ActiveWorkout({
         onSkip={timer.skip}
       />
 
+      {/* Spacer so content isn't hidden behind sticky timer */}
+      {timer.isRunning && <div className="h-14" />}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -108,9 +113,12 @@ export function ActiveWorkout({
       </div>
 
       {/* Exercise cards */}
-      {workoutExercises.map((we) => {
+      {workoutExercises.map((we, idx) => {
         const exercise = exercises.find(e => e.id === we.exerciseId);
         if (!exercise) return null;
+
+        const isFirst = idx === 0;
+        const isLast = idx === workoutExercises.length - 1;
 
         // Cardio exercises get a different card
         if (exercise.isCardio) {
@@ -121,6 +129,8 @@ export function ActiveWorkout({
               workoutExercise={we}
               onUpdate={(updates) => onUpdateWorkoutExercise(we.id!, updates)}
               onRemove={() => onRemoveExercise(we.id!)}
+              onMoveUp={!isFirst ? () => onReorderExercise(we.id!, 'up') : undefined}
+              onMoveDown={!isLast ? () => onReorderExercise(we.id!, 'down') : undefined}
             />
           );
         }
@@ -138,6 +148,8 @@ export function ActiveWorkout({
             onDeleteSet={onDeleteSet}
             onAddSet={() => onAddSet(we.id!)}
             onRemove={() => onRemoveExercise(we.id!)}
+            onMoveUp={!isFirst ? () => onReorderExercise(we.id!, 'up') : undefined}
+            onMoveDown={!isLast ? () => onReorderExercise(we.id!, 'down') : undefined}
             onTimerStart={() => timer.start(90)}
             onUpdateEffort={(rating) => handleUpdateEffort(we.id!, rating)}
           />

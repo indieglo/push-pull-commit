@@ -30,8 +30,8 @@ export function SetRow({ set, isTimed, onUpdate, onComplete, onDelete, onTimerSt
   };
 
   return (
-    <div className={`flex items-center gap-2 py-1.5 ${set.completed ? 'opacity-60' : ''}`}>
-      <span className="text-gray-500 text-sm w-6 text-center font-mono">
+    <div className={`flex items-center gap-1.5 py-1.5 ${set.completed ? 'opacity-60' : ''}`}>
+      <span className="text-gray-500 text-sm w-5 text-center font-mono shrink-0">
         {set.setNumber}
       </span>
 
@@ -39,13 +39,13 @@ export function SetRow({ set, isTimed, onUpdate, onComplete, onDelete, onTimerSt
       {set.isBodyweight ? (
         <button
           onClick={handleToggleBodyweight}
-          className="w-24 text-center text-gray-400 text-sm py-2.5 border border-transparent hover:border-gray-600 rounded-lg transition-colors"
+          className="w-20 text-center text-gray-400 text-sm py-2.5 border border-transparent hover:border-gray-600 rounded-lg transition-colors shrink-0"
           title="Tap to add weight"
         >
           BW
         </button>
       ) : (
-        <div className="relative w-24">
+        <div className="relative w-20 shrink-0">
           <NumericInput
             value={set.weight}
             onChange={(weight) => {
@@ -70,7 +70,7 @@ export function SetRow({ set, isTimed, onUpdate, onComplete, onDelete, onTimerSt
           onChange={(durationSeconds) => onUpdate({ durationSeconds })}
           placeholder="0"
           suffix="sec"
-          className="w-24"
+          className="w-20 shrink-0"
         />
       ) : (
         <NumericInput
@@ -78,26 +78,26 @@ export function SetRow({ set, isTimed, onUpdate, onComplete, onDelete, onTimerSt
           onChange={(reps) => onUpdate({ reps })}
           placeholder="0"
           suffix="reps"
-          className="w-24"
+          className="w-20 shrink-0"
         />
       )}
 
       <button
         onClick={handleComplete}
-        className={`p-2.5 rounded-lg transition-colors ${
+        className={`p-2 rounded-lg transition-colors shrink-0 ${
           set.completed
             ? 'bg-success/20 text-success'
             : 'bg-surface-light text-gray-400 hover:text-white'
         }`}
       >
-        <Check size={20} />
+        <Check size={18} />
       </button>
 
       <button
         onClick={onDelete}
-        className="p-2.5 text-gray-500 hover:text-danger transition-colors"
+        className="p-2 text-gray-500 hover:text-danger transition-colors shrink-0"
       >
-        <Trash2 size={16} />
+        <Trash2 size={14} />
       </button>
     </div>
   );
