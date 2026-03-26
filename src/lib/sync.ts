@@ -73,6 +73,8 @@ async function pushExercises(userId: string) {
 async function pushWorkouts(userId: string) {
   const pending = await db.workouts.where('syncStatus').equals('pending').toArray();
   for (const workout of pending) {
+    // Only push completed workouts — don't sync in-progress or cancelled ones
+    if (!workout.completedAt && !workout.remoteId) continue;
     if (workout.remoteId) {
       // Update existing
       const { error } = await supabase
@@ -253,11 +255,12 @@ export async function pullFromSupabase(userId: string) {
       }
     }
 
-    // Pull workouts
+    // Pull workouts (only completed ones)
     const { data: remoteWorkouts } = await supabase
       .from('workouts')
       .select('*')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .not('completed_at', 'is', null);
 
     if (remoteWorkouts) {
       for (const rw of remoteWorkouts) {
