@@ -11,7 +11,16 @@ export function useWorkout() {
 
   // Live query for the active workout
   const activeWorkout = useLiveQuery(
-    () => activeWorkoutId ? db.workouts.get(activeWorkoutId) : undefined,
+    async () => {
+      if (!activeWorkoutId) return undefined;
+      const workout = await db.workouts.get(activeWorkoutId);
+      // Clean up stale localStorage if workout no longer exists
+      if (!workout) {
+        localStorage.removeItem('activeWorkoutId');
+        setActiveWorkoutId(null);
+      }
+      return workout;
+    },
     [activeWorkoutId]
   );
 

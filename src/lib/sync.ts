@@ -239,9 +239,9 @@ export async function pullFromSupabase(userId: string) {
       .eq('user_id', userId);
 
     if (remoteExercises) {
-      for (const re of remoteExercises) {
-        if (exerciseRemoteIds.has(re.id)) continue;
-        await db.exercises.add({
+      const newExercises = remoteExercises
+        .filter(re => !exerciseRemoteIds.has(re.id))
+        .map(re => ({
           remoteId: re.id,
           name: re.name,
           category: re.category,
@@ -250,9 +250,9 @@ export async function pullFromSupabase(userId: string) {
           isUnilateral: re.is_unilateral,
           muscleGroup: re.muscle_group,
           distanceUnit: re.distance_unit,
-          syncStatus: 'synced',
-        });
-      }
+          syncStatus: 'synced' as const,
+        }));
+      if (newExercises.length) await db.exercises.bulkAdd(newExercises);
     }
 
     // Pull workouts (only completed ones)
@@ -263,9 +263,9 @@ export async function pullFromSupabase(userId: string) {
       .not('completed_at', 'is', null);
 
     if (remoteWorkouts) {
-      for (const rw of remoteWorkouts) {
-        if (workoutRemoteIds.has(rw.id)) continue;
-        await db.workouts.add({
+      const newWorkouts = remoteWorkouts
+        .filter(rw => !workoutRemoteIds.has(rw.id))
+        .map(rw => ({
           remoteId: rw.id,
           userId: rw.user_id,
           date: rw.date,
@@ -273,9 +273,9 @@ export async function pullFromSupabase(userId: string) {
           notes: rw.notes,
           startedAt: rw.started_at,
           completedAt: rw.completed_at,
-          syncStatus: 'synced',
-        });
-      }
+          syncStatus: 'synced' as const,
+        }));
+      if (newWorkouts.length) await db.workouts.bulkAdd(newWorkouts);
     }
 
     // Build remoteId -> localId maps for lookups (refresh after inserts)
@@ -290,25 +290,21 @@ export async function pullFromSupabase(userId: string) {
       .select('*');
 
     if (remoteWEs) {
-      for (const rwe of remoteWEs) {
-        if (weRemoteIds.has(rwe.id)) continue;
-
-        const localWorkoutId = workoutMap.get(rwe.workout_id);
-        const localExerciseId = exerciseMap.get(rwe.exercise_id);
-        if (!localWorkoutId || !localExerciseId) continue;
-
-        await db.workoutExercises.add({
+      const newWEs = remoteWEs
+        .filter(rwe => !weRemoteIds.has(rwe.id))
+        .filter(rwe => workoutMap.has(rwe.workout_id) && exerciseMap.has(rwe.exercise_id))
+        .map(rwe => ({
           remoteId: rwe.id,
-          workoutId: localWorkoutId,
-          exerciseId: localExerciseId,
+          workoutId: workoutMap.get(rwe.workout_id)!,
+          exerciseId: exerciseMap.get(rwe.exercise_id)!,
           order: rwe.order,
           effortRating: rwe.effort_rating,
           durationMinutes: rwe.duration_minutes,
           distance: rwe.distance,
           cardioNotes: rwe.cardio_notes,
-          syncStatus: 'synced',
-        });
-      }
+          syncStatus: 'synced' as const,
+        }));
+      if (newWEs.length) await db.workoutExercises.bulkAdd(newWEs);
     }
 
     // Build WE remoteId -> localId map
@@ -321,15 +317,12 @@ export async function pullFromSupabase(userId: string) {
       .select('*');
 
     if (remoteSets) {
-      for (const rs of remoteSets) {
-        if (setRemoteIds.has(rs.id)) continue;
-
-        const localWEId = weMap.get(rs.workout_exercise_id);
-        if (!localWEId) continue;
-
-        await db.exerciseSets.add({
+      const newSets = remoteSets
+        .filter(rs => !setRemoteIds.has(rs.id))
+        .filter(rs => weMap.has(rs.workout_exercise_id))
+        .map(rs => ({
           remoteId: rs.id,
-          workoutExerciseId: localWEId,
+          workoutExerciseId: weMap.get(rs.workout_exercise_id)!,
           setNumber: rs.set_number,
           weight: rs.weight,
           reps: rs.reps,
@@ -337,9 +330,9 @@ export async function pullFromSupabase(userId: string) {
           isBodyweight: rs.is_bodyweight,
           completed: rs.completed,
           completedAt: rs.completed_at,
-          syncStatus: 'synced',
-        });
-      }
+          syncStatus: 'synced' as const,
+        }));
+      if (newSets.length) await db.exerciseSets.bulkAdd(newSets);
     }
   } catch (err) {
     console.warn('Sync pull failed:', err);
