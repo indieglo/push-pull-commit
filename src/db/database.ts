@@ -24,6 +24,14 @@ export class PushPullCommitDB extends Dexie {
       workoutExercises: '++id, workoutId, exerciseId, syncStatus',
       exerciseSets: '++id, workoutExerciseId, syncStatus',
     });
+
+    // v3: Add remoteId index to workoutExercises and exerciseSets for pull sync
+    this.version(3).stores({
+      exercises: '++id, name, category, syncStatus, remoteId',
+      workouts: '++id, date, name, userId, syncStatus, remoteId',
+      workoutExercises: '++id, workoutId, exerciseId, syncStatus, remoteId',
+      exerciseSets: '++id, workoutExerciseId, syncStatus, remoteId',
+    });
   }
 }
 

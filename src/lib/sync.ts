@@ -268,8 +268,62 @@ export async function pullFromSupabase(userId: string) {
       }
     }
 
-    // Pull workout exercises and sets follows similar pattern
-    // For MVP, push is more important than pull (single user, single device primarily)
+    // Pull workout exercises
+    const { data: remoteWEs } = await supabase
+      .from('workout_exercises')
+      .select('*');
+
+    if (remoteWEs) {
+      for (const rwe of remoteWEs) {
+        const existing = await db.workoutExercises.where('remoteId').equals(rwe.id).first();
+        if (existing) continue;
+
+        // Find local workout and exercise by their remoteIds
+        const localWorkout = await db.workouts.where('remoteId').equals(rwe.workout_id).first();
+        const localExercise = await db.exercises.where('remoteId').equals(rwe.exercise_id).first();
+        if (!localWorkout?.id || !localExercise?.id) continue;
+
+        await db.workoutExercises.add({
+          remoteId: rwe.id,
+          workoutId: localWorkout.id,
+          exerciseId: localExercise.id,
+          order: rwe.order,
+          effortRating: rwe.effort_rating,
+          durationMinutes: rwe.duration_minutes,
+          distance: rwe.distance,
+          cardioNotes: rwe.cardio_notes,
+          syncStatus: 'synced',
+        });
+      }
+    }
+
+    // Pull exercise sets
+    const { data: remoteSets } = await supabase
+      .from('exercise_sets')
+      .select('*');
+
+    if (remoteSets) {
+      for (const rs of remoteSets) {
+        const existing = await db.exerciseSets.where('remoteId').equals(rs.id).first();
+        if (existing) continue;
+
+        const localWE = await db.workoutExercises.where('remoteId').equals(rs.workout_exercise_id).first();
+        if (!localWE?.id) continue;
+
+        await db.exerciseSets.add({
+          remoteId: rs.id,
+          workoutExerciseId: localWE.id,
+          setNumber: rs.set_number,
+          weight: rs.weight,
+          reps: rs.reps,
+          durationSeconds: rs.duration_seconds,
+          isBodyweight: rs.is_bodyweight,
+          completed: rs.completed,
+          completedAt: rs.completed_at,
+          syncStatus: 'synced',
+        });
+      }
+    }
   } catch (err) {
     console.warn('Sync pull failed:', err);
   }
