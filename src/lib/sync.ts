@@ -219,6 +219,17 @@ export async function pullFromSupabase(userId: string) {
   if (!isSupabaseConfigured) return;
 
   try {
+    // Build maps of existing remoteIds to avoid per-record DB lookups
+    const existingExercises = await db.exercises.toArray();
+    const existingWorkouts = await db.workouts.toArray();
+    const existingWEs = await db.workoutExercises.toArray();
+    const existingSets = await db.exerciseSets.toArray();
+
+    const exerciseRemoteIds = new Set(existingExercises.map(e => e.remoteId).filter(Boolean));
+    const workoutRemoteIds = new Set(existingWorkouts.map(w => w.remoteId).filter(Boolean));
+    const weRemoteIds = new Set(existingWEs.map(we => we.remoteId).filter(Boolean));
+    const setRemoteIds = new Set(existingSets.map(s => s.remoteId).filter(Boolean));
+
     // Pull exercises
     const { data: remoteExercises } = await supabase
       .from('exercises')
@@ -227,20 +238,18 @@ export async function pullFromSupabase(userId: string) {
 
     if (remoteExercises) {
       for (const re of remoteExercises) {
-        const existing = await db.exercises.where('remoteId').equals(re.id).first();
-        if (!existing) {
-          await db.exercises.add({
-            remoteId: re.id,
-            name: re.name,
-            category: re.category,
-            isBodyweight: re.is_bodyweight,
-            isCardio: re.is_cardio,
-            isUnilateral: re.is_unilateral,
-            muscleGroup: re.muscle_group,
-            distanceUnit: re.distance_unit,
-            syncStatus: 'synced',
-          });
-        }
+        if (exerciseRemoteIds.has(re.id)) continue;
+        await db.exercises.add({
+          remoteId: re.id,
+          name: re.name,
+          category: re.category,
+          isBodyweight: re.is_bodyweight,
+          isCardio: re.is_cardio,
+          isUnilateral: re.is_unilateral,
+          muscleGroup: re.muscle_group,
+          distanceUnit: re.distance_unit,
+          syncStatus: 'synced',
+        });
       }
     }
 
@@ -252,21 +261,25 @@ export async function pullFromSupabase(userId: string) {
 
     if (remoteWorkouts) {
       for (const rw of remoteWorkouts) {
-        const existing = await db.workouts.where('remoteId').equals(rw.id).first();
-        if (!existing) {
-          await db.workouts.add({
-            remoteId: rw.id,
-            userId: rw.user_id,
-            date: rw.date,
-            name: rw.name,
-            notes: rw.notes,
-            startedAt: rw.started_at,
-            completedAt: rw.completed_at,
-            syncStatus: 'synced',
-          });
-        }
+        if (workoutRemoteIds.has(rw.id)) continue;
+        await db.workouts.add({
+          remoteId: rw.id,
+          userId: rw.user_id,
+          date: rw.date,
+          name: rw.name,
+          notes: rw.notes,
+          startedAt: rw.started_at,
+          completedAt: rw.completed_at,
+          syncStatus: 'synced',
+        });
       }
     }
+
+    // Build remoteId -> localId maps for lookups (refresh after inserts)
+    const allExercises = await db.exercises.toArray();
+    const allWorkouts = await db.workouts.toArray();
+    const exerciseMap = new Map(allExercises.filter(e => e.remoteId).map(e => [e.remoteId!, e.id!]));
+    const workoutMap = new Map(allWorkouts.filter(w => w.remoteId).map(w => [w.remoteId!, w.id!]));
 
     // Pull workout exercises
     const { data: remoteWEs } = await supabase
@@ -275,18 +288,16 @@ export async function pullFromSupabase(userId: string) {
 
     if (remoteWEs) {
       for (const rwe of remoteWEs) {
-        const existing = await db.workoutExercises.where('remoteId').equals(rwe.id).first();
-        if (existing) continue;
+        if (weRemoteIds.has(rwe.id)) continue;
 
-        // Find local workout and exercise by their remoteIds
-        const localWorkout = await db.workouts.where('remoteId').equals(rwe.workout_id).first();
-        const localExercise = await db.exercises.where('remoteId').equals(rwe.exercise_id).first();
-        if (!localWorkout?.id || !localExercise?.id) continue;
+        const localWorkoutId = workoutMap.get(rwe.workout_id);
+        const localExerciseId = exerciseMap.get(rwe.exercise_id);
+        if (!localWorkoutId || !localExerciseId) continue;
 
         await db.workoutExercises.add({
           remoteId: rwe.id,
-          workoutId: localWorkout.id,
-          exerciseId: localExercise.id,
+          workoutId: localWorkoutId,
+          exerciseId: localExerciseId,
           order: rwe.order,
           effortRating: rwe.effort_rating,
           durationMinutes: rwe.duration_minutes,
@@ -297,6 +308,10 @@ export async function pullFromSupabase(userId: string) {
       }
     }
 
+    // Build WE remoteId -> localId map
+    const allWEs = await db.workoutExercises.toArray();
+    const weMap = new Map(allWEs.filter(we => we.remoteId).map(we => [we.remoteId!, we.id!]));
+
     // Pull exercise sets
     const { data: remoteSets } = await supabase
       .from('exercise_sets')
@@ -304,15 +319,14 @@ export async function pullFromSupabase(userId: string) {
 
     if (remoteSets) {
       for (const rs of remoteSets) {
-        const existing = await db.exerciseSets.where('remoteId').equals(rs.id).first();
-        if (existing) continue;
+        if (setRemoteIds.has(rs.id)) continue;
 
-        const localWE = await db.workoutExercises.where('remoteId').equals(rs.workout_exercise_id).first();
-        if (!localWE?.id) continue;
+        const localWEId = weMap.get(rs.workout_exercise_id);
+        if (!localWEId) continue;
 
         await db.exerciseSets.add({
           remoteId: rs.id,
-          workoutExerciseId: localWE.id,
+          workoutExerciseId: localWEId,
           setNumber: rs.set_number,
           weight: rs.weight,
           reps: rs.reps,
