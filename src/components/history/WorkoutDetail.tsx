@@ -67,9 +67,24 @@ export function WorkoutDetail({ workoutId, onBack }: WorkoutDetailProps) {
         <p className="text-sm text-gray-300 bg-surface rounded-lg p-3 mb-4">{workout.notes}</p>
       )}
 
+      {exerciseDetails.length === 0 && (
+        <p className="text-gray-500 text-sm">No exercise data available for this workout.</p>
+      )}
+
       {exerciseDetails.map(({ exercise, sets, workoutExercise }) => (
         <div key={workoutExercise.id} className="bg-surface rounded-xl p-4 mb-3">
-          <h3 className="font-semibold text-white mb-2">{exercise?.name ?? 'Unknown'}</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-white">{exercise?.name ?? 'Unknown'}</h3>
+            {workoutExercise.effortRating && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                workoutExercise.effortRating === 'easy' ? 'bg-success/20 text-success' :
+                workoutExercise.effortRating === 'challenging' ? 'bg-yellow-400/20 text-yellow-400' :
+                'bg-danger/20 text-danger'
+              }`}>
+                {workoutExercise.effortRating}
+              </span>
+            )}
+          </div>
 
           {/* Cardio display */}
           {exercise?.isCardio ? (
@@ -84,7 +99,7 @@ export function WorkoutDetail({ workoutId, onBack }: WorkoutDetailProps) {
                 <span className="text-gray-400 italic">{workoutExercise.cardioNotes}</span>
               )}
             </div>
-          ) : (
+          ) : sets.length > 0 ? (
             /* Set-based display */
             <div className="space-y-1">
               {sets.map((set) => (
@@ -98,7 +113,10 @@ export function WorkoutDetail({ workoutId, onBack }: WorkoutDetailProps) {
                   {set.durationSeconds ? (
                     <span className="text-white">{set.durationSeconds}s</span>
                   ) : (
-                    <span className="text-white">{set.reps ?? '-'} reps</span>
+                    <span className="text-white">
+                      {set.reps ?? '-'} reps
+                      {exercise?.isUnilateral && <span className="text-brand-light"> /side</span>}
+                    </span>
                   )}
                   {set.completed && (
                     <span className="text-success text-xs">Done</span>
@@ -106,6 +124,8 @@ export function WorkoutDetail({ workoutId, onBack }: WorkoutDetailProps) {
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-gray-500 text-sm">No sets recorded</p>
           )}
         </div>
       ))}
