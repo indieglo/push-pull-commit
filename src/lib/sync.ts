@@ -7,19 +7,12 @@ let isSyncing = false;
 
 // Push all pending local changes to Supabase
 export async function pushToSupabase(userId: string) {
-  if (!isSupabaseConfigured || isSyncing) return;
-  isSyncing = true;
+  if (!isSupabaseConfigured) return;
 
-  try {
-    await pushExercises(userId);
-    await pushWorkouts(userId);
-    await pushWorkoutExercises();
-    await pushExerciseSets();
-  } catch (err) {
-    console.warn('Sync push failed (will retry later):', err);
-  } finally {
-    isSyncing = false;
-  }
+  await pushExercises(userId);
+  await pushWorkouts(userId);
+  await pushWorkoutExercises();
+  await pushExerciseSets();
 }
 
 async function pushExercises(userId: string) {
@@ -341,6 +334,14 @@ export async function pullFromSupabase(userId: string) {
 
 // Background sync - call on app open and periodically
 export async function syncAll(userId: string) {
-  await pushToSupabase(userId);
-  await pullFromSupabase(userId);
+  if (!isSupabaseConfigured || isSyncing) return;
+  isSyncing = true;
+  try {
+    await pushToSupabase(userId);
+    await pullFromSupabase(userId);
+  } catch (err) {
+    console.warn('Sync failed:', err);
+  } finally {
+    isSyncing = false;
+  }
 }

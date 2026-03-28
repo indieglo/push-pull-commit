@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
+import { syncAll } from '../lib/sync';
+import { supabase } from '../lib/supabase';
 import type { Workout, WorkoutExercise, ExerciseSet, LastPerformance } from '../types';
 
 export function useWorkout() {
@@ -179,6 +181,12 @@ export function useWorkout() {
     });
     setActiveWorkoutId(null);
     localStorage.removeItem('activeWorkoutId');
+
+    // Auto-sync after finishing so data is never lost
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      syncAll(user.id).catch(() => {}); // fire and forget
+    }
   }, [activeWorkoutId]);
 
   const cancelWorkout = useCallback(async () => {
