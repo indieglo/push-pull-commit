@@ -7,7 +7,6 @@ import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useAuth } from './hooks/useAuth';
 import { seedDatabase } from './db/seed';
-import { syncAll } from './lib/sync';
 
 function App() {
   const { user, loading, isSupabaseConfigured } = useAuth();
@@ -16,13 +15,6 @@ function App() {
   useEffect(() => {
     seedDatabase();
   }, []);
-
-  // Background sync when user is authenticated
-  useEffect(() => {
-    if (user) {
-      syncAll(user.id).catch(console.warn);
-    }
-  }, [user]);
 
   if (loading) {
     return (
