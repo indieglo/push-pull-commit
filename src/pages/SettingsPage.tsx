@@ -181,10 +181,10 @@ export function SettingsPage() {
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Local Database</h2>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: 'Exercises', count: dbStats.exercises },
+            { label: 'Exercise Library', count: dbStats.exercises },
             { label: 'Workouts', count: dbStats.workouts },
-            { label: 'Workout Exercises', count: dbStats.workoutExercises },
-            { label: 'Sets', count: dbStats.sets },
+            { label: 'Exercise Entries', count: dbStats.workoutExercises },
+            { label: 'Sets Logged', count: dbStats.sets },
           ].map(({ label, count }) => (
             <div key={label} className="flex justify-between text-sm px-2 py-1 rounded bg-background">
               <span className="text-gray-400">{label}</span>
