@@ -216,6 +216,11 @@ export function useWorkout() {
     await db.workoutExercises.update(swap.id!, { order: current.order, syncStatus: 'pending' as const });
   }, [workoutExercises]);
 
+  const updateWorkoutNotes = useCallback(async (notes: string) => {
+    if (!activeWorkoutId) return;
+    await db.workouts.update(activeWorkoutId, { notes: notes || undefined, syncStatus: 'pending' });
+  }, [activeWorkoutId]);
+
   const updateWorkoutExercise = useCallback(async (weId: number, updates: Partial<WorkoutExercise>) => {
     await db.workoutExercises.update(weId, { ...updates, syncStatus: 'pending' });
   }, []);
@@ -229,6 +234,7 @@ export function useWorkout() {
     addExerciseToWorkout,
     addSet,
     updateSet,
+    updateWorkoutNotes,
     updateWorkoutExercise,
     reorderExercise,
     deleteSet,

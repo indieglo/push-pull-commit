@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, AlertTriangle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, AlertTriangle, ChevronDown, StickyNote } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/database';
 import { ExerciseCard } from './ExerciseCard';
@@ -23,6 +23,8 @@ interface ActiveWorkoutProps {
   onFinish: () => void;
   onCancel: () => void;
   workoutName: string;
+  workoutNotes: string;
+  onUpdateNotes: (notes: string) => void;
 }
 
 export function ActiveWorkout({
@@ -39,12 +41,21 @@ export function ActiveWorkout({
   onFinish,
   onCancel,
   workoutName,
+  workoutNotes,
+  onUpdateNotes,
 }: ActiveWorkoutProps) {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const [incompleteSummary, setIncompleteSummary] = useState<string[]>([]);
+  const [showNotes, setShowNotes] = useState(!!workoutNotes);
+  const notesDebounceRef = useRef<ReturnType<typeof setTimeout>>();
   const timer = useTimer(90);
+
+  const handleNotesChange = (value: string) => {
+    clearTimeout(notesDebounceRef.current);
+    notesDebounceRef.current = setTimeout(() => onUpdateNotes(value), 500);
+  };
 
   // Load exercises from DB for display
   const exerciseIds = workoutExercises.map(we => we.exerciseId);
@@ -164,6 +175,38 @@ export function ActiveWorkout({
         <Plus size={20} />
         Add Exercise
       </button>
+
+      {/* Workout notes */}
+      {!showNotes ? (
+        <button
+          onClick={() => setShowNotes(true)}
+          className="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-gray-300 transition-colors mb-4"
+        >
+          <StickyNote size={16} />
+          Add workout notes
+        </button>
+      ) : (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <StickyNote size={12} /> Notes
+            </span>
+            <button
+              onClick={() => setShowNotes(false)}
+              className="text-xs text-gray-500 hover:text-gray-300"
+            >
+              <ChevronDown size={14} />
+            </button>
+          </div>
+          <textarea
+            defaultValue={workoutNotes}
+            onChange={(e) => handleNotesChange(e.target.value)}
+            placeholder="How did it feel? Anything to remember next time..."
+            rows={2}
+            className="w-full bg-surface rounded-lg p-3 text-sm text-white placeholder-gray-500 border border-gray-700 focus:border-brand-light focus:outline-none resize-none"
+          />
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="flex gap-3">

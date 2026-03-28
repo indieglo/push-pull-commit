@@ -20,6 +20,7 @@ export function WorkoutPage() {
     addExerciseToWorkout,
     addSet,
     updateSet,
+    updateWorkoutNotes,
     updateWorkoutExercise,
     reorderExercise,
     deleteSet,
@@ -63,6 +64,8 @@ export function WorkoutPage() {
         onFinish={finishWorkout}
         onCancel={cancelWorkout}
         workoutName={activeWorkout.name}
+        workoutNotes={activeWorkout.notes ?? ''}
+        onUpdateNotes={updateWorkoutNotes}
       />
     );
   }
