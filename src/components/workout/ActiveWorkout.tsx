@@ -49,7 +49,7 @@ export function ActiveWorkout({
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const [incompleteSummary, setIncompleteSummary] = useState<string[]>([]);
   const [showNotes, setShowNotes] = useState(!!workoutNotes);
-  const notesDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const notesDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const timer = useTimer(90);
 
   const handleNotesChange = (value: string) => {
