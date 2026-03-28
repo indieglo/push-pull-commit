@@ -77,7 +77,7 @@ export function ActiveWorkout({
 
       const weSets = allSets.filter(s => s.workoutExerciseId === we.id);
       const incomplete = weSets.filter(s => !s.completed);
-      const missingReps = weSets.filter(s => s.completed && (s.reps === null || s.reps === 0));
+      const missingReps = weSets.filter(s => s.completed && (s.reps === null || s.reps === 0) && !s.durationSeconds);
 
       if (incomplete.length > 0) {
         issues.push(`${exercise.name}: ${incomplete.length} set${incomplete.length > 1 ? 's' : ''} not checked off`);
