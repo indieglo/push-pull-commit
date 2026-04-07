@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { X, ChevronUp, Timer, MapPin, ArrowUp, ArrowDown } from 'lucide-react';
 import { NumericInput } from '../common/NumericInput';
 import { getLastCardioPerformance } from '../../hooks/useWorkout';
+import { db } from '../../db/database';
 import type { Exercise, WorkoutExercise, LastPerformance } from '../../types';
 
 interface CardioCardProps {
@@ -14,13 +16,16 @@ interface CardioCardProps {
 }
 
 export function CardioCard({ exercise, workoutExercise, onUpdate, onRemove, onMoveUp, onMoveDown }: CardioCardProps) {
-  const [lastPerf, setLastPerf] = useState<LastPerformance | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const distanceUnit = exercise.distanceUnit || 'km';
 
-  useEffect(() => {
-    getLastCardioPerformance(workoutExercise.exerciseId).then(setLastPerf);
-  }, [workoutExercise.exerciseId]);
+  const lastPerf: LastPerformance | null = useLiveQuery(
+    async () => {
+      await db.workoutExercises.count();
+      return await getLastCardioPerformance(workoutExercise.exerciseId);
+    },
+    [workoutExercise.exerciseId]
+  ) ?? null;
 
   return (
     <div className="bg-surface rounded-xl p-4 mb-3">

@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, X, ChevronUp, ArrowUp, ArrowDown, TrendingUp, Minus, Equal } from 'lucide-react';
 import { SetRow } from './SetRow';
 import { getLastPerformance } from '../../hooks/useWorkout';
+import { db } from '../../db/database';
 import type { Exercise, ExerciseSet, WorkoutExercise, LastPerformance, EffortRating } from '../../types';
 
 interface ExerciseCardProps {
@@ -80,13 +82,18 @@ export function ExerciseCard({
   onTimerStart,
   onUpdateEffort,
 }: ExerciseCardProps) {
-  const [lastPerf, setLastPerf] = useState<LastPerformance | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const isTimed = TIMED_EXERCISES.includes(exercise.name.toLowerCase());
 
-  useEffect(() => {
-    getLastPerformance(workoutExercise.exerciseId).then(setLastPerf);
-  }, [workoutExercise.exerciseId]);
+  // Live query so this updates whenever new history is synced in
+  const lastPerf: LastPerformance | null = useLiveQuery(
+    async () => {
+      // Depend on exerciseSets so changes (e.g. sync) re-trigger this query
+      await db.exerciseSets.count();
+      return await getLastPerformance(workoutExercise.exerciseId);
+    },
+    [workoutExercise.exerciseId]
+  ) ?? null;
 
   const sortedSets = [...sets].sort((a, b) => a.setNumber - b.setNumber);
   const recommendation = getWeightRecommendation(lastPerf, exercise.isBodyweight);
