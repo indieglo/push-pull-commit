@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Dumbbell, History, Settings } from 'lucide-react';
+import { Dumbbell, History, Heart, Settings } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Dumbbell, label: 'Workout' },
   { path: '/history', icon: History, label: 'History' },
+  { path: '/health', icon: Heart, label: 'Health' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 

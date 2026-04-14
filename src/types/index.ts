@@ -59,6 +59,34 @@ export interface WorkoutTemplate {
   exerciseNames: string[];
 }
 
+// Health tracking
+export interface BloodPressureReading {
+  id?: number;
+  remoteId?: string;
+  userId?: string;
+  date: string; // ISO date
+  time: string; // HH:MM
+  systolic: number;
+  diastolic: number;
+  pulse?: number | null;
+  notes?: string;
+  syncStatus?: 'synced' | 'pending';
+}
+
+export interface WeightLog {
+  id?: number;
+  remoteId?: string;
+  userId?: string;
+  date: string; // ISO date
+  weight: number; // kg
+  bmi?: number | null;
+  fatPercent?: number | null;
+  muscleMass?: number | null;
+  source?: 'manual' | 'withings'; // where the data came from
+  notes?: string;
+  syncStatus?: 'synced' | 'pending';
+}
+
 // For "last time" display
 export interface LastPerformance {
   date: string;

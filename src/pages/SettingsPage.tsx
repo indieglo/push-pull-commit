@@ -15,22 +15,26 @@ export function SettingsPage() {
 
   // Live counts for local DB stats
   const dbStats = useLiveQuery(async () => {
-    const [exercises, workouts, workoutExercises, sets] = await Promise.all([
+    const [exercises, workouts, workoutExercises, sets, bpReadings, weightLogs] = await Promise.all([
       db.exercises.count(),
       db.workouts.count(),
       db.workoutExercises.count(),
       db.exerciseSets.count(),
+      db.bloodPressure.count(),
+      db.weightLogs.count(),
     ]);
-    const [pendingWorkouts, pendingWEs, pendingSets] = await Promise.all([
+    const [pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight] = await Promise.all([
       db.workouts.where('syncStatus').equals('pending').count(),
       db.workoutExercises.where('syncStatus').equals('pending').count(),
       db.exerciseSets.where('syncStatus').equals('pending').count(),
+      db.bloodPressure.where('syncStatus').equals('pending').count(),
+      db.weightLogs.where('syncStatus').equals('pending').count(),
     ]);
     return {
-      exercises, workouts, workoutExercises, sets,
-      pending: pendingWorkouts + pendingWEs + pendingSets,
+      exercises, workouts, workoutExercises, sets, bpReadings, weightLogs,
+      pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight,
     };
-  }) ?? { exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, pending: 0 };
+  }) ?? { exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0, pending: 0 };
 
   const handleSync = async () => {
     if (!user) return;
@@ -185,6 +189,8 @@ export function SettingsPage() {
             { label: 'Workouts', count: dbStats.workouts },
             { label: 'Exercise Entries', count: dbStats.workoutExercises },
             { label: 'Sets Logged', count: dbStats.sets },
+            { label: 'BP Readings', count: dbStats.bpReadings },
+            { label: 'Weight Logs', count: dbStats.weightLogs },
           ].map(({ label, count }) => (
             <div key={label} className="flex justify-between text-sm px-2 py-1 rounded bg-background">
               <span className="text-gray-400">{label}</span>

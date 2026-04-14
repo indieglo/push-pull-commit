@@ -13,6 +13,8 @@ export async function pushToSupabase(userId: string) {
   await pushWorkouts(userId);
   await pushWorkoutExercises();
   await pushExerciseSets();
+  await pushBloodPressure(userId);
+  await pushWeightLogs(userId);
 }
 
 async function pushExercises(userId: string) {
@@ -209,6 +211,82 @@ async function pushExerciseSets() {
   }
 }
 
+async function pushBloodPressure(userId: string) {
+  const pending = await db.bloodPressure.where('syncStatus').equals('pending').toArray();
+  for (const bp of pending) {
+    if (bp.remoteId) {
+      const { error } = await supabase
+        .from('blood_pressure')
+        .update({
+          date: bp.date,
+          time: bp.time,
+          systolic: bp.systolic,
+          diastolic: bp.diastolic,
+          pulse: bp.pulse,
+          notes: bp.notes,
+        })
+        .eq('id', bp.remoteId);
+      if (!error) await db.bloodPressure.update(bp.id!, { syncStatus: 'synced' });
+    } else {
+      const { data, error } = await supabase
+        .from('blood_pressure')
+        .insert({
+          user_id: userId,
+          date: bp.date,
+          time: bp.time,
+          systolic: bp.systolic,
+          diastolic: bp.diastolic,
+          pulse: bp.pulse,
+          notes: bp.notes,
+        })
+        .select()
+        .single();
+      if (!error && data) {
+        await db.bloodPressure.update(bp.id!, { remoteId: data.id, syncStatus: 'synced' });
+      }
+    }
+  }
+}
+
+async function pushWeightLogs(userId: string) {
+  const pending = await db.weightLogs.where('syncStatus').equals('pending').toArray();
+  for (const wl of pending) {
+    if (wl.remoteId) {
+      const { error } = await supabase
+        .from('weight_logs')
+        .update({
+          date: wl.date,
+          weight: wl.weight,
+          bmi: wl.bmi,
+          fat_percent: wl.fatPercent,
+          muscle_mass: wl.muscleMass,
+          source: wl.source,
+          notes: wl.notes,
+        })
+        .eq('id', wl.remoteId);
+      if (!error) await db.weightLogs.update(wl.id!, { syncStatus: 'synced' });
+    } else {
+      const { data, error } = await supabase
+        .from('weight_logs')
+        .insert({
+          user_id: userId,
+          date: wl.date,
+          weight: wl.weight,
+          bmi: wl.bmi,
+          fat_percent: wl.fatPercent,
+          muscle_mass: wl.muscleMass,
+          source: wl.source,
+          notes: wl.notes,
+        })
+        .select()
+        .single();
+      if (!error && data) {
+        await db.weightLogs.update(wl.id!, { remoteId: data.id, syncStatus: 'synced' });
+      }
+    }
+  }
+}
+
 // Pull remote data into local DB (for cross-device sync)
 export async function pullFromSupabase(userId: string) {
   if (!isSupabaseConfigured) return;
@@ -326,6 +404,59 @@ export async function pullFromSupabase(userId: string) {
           syncStatus: 'synced' as const,
         }));
       if (newSets.length) await db.exerciseSets.bulkAdd(newSets);
+    }
+
+    // Pull blood pressure readings
+    const existingBP = await db.bloodPressure.toArray();
+    const bpRemoteIds = new Set(existingBP.map(bp => bp.remoteId).filter(Boolean));
+
+    const { data: remoteBP } = await supabase
+      .from('blood_pressure')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (remoteBP) {
+      const newBP = remoteBP
+        .filter(rbp => !bpRemoteIds.has(rbp.id))
+        .map(rbp => ({
+          remoteId: rbp.id,
+          userId: rbp.user_id,
+          date: rbp.date,
+          time: rbp.time,
+          systolic: rbp.systolic,
+          diastolic: rbp.diastolic,
+          pulse: rbp.pulse,
+          notes: rbp.notes,
+          syncStatus: 'synced' as const,
+        }));
+      if (newBP.length) await db.bloodPressure.bulkAdd(newBP);
+    }
+
+    // Pull weight logs
+    const existingWeight = await db.weightLogs.toArray();
+    const weightRemoteIds = new Set(existingWeight.map(w => w.remoteId).filter(Boolean));
+
+    const { data: remoteWeight } = await supabase
+      .from('weight_logs')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (remoteWeight) {
+      const newWeight = remoteWeight
+        .filter(rw => !weightRemoteIds.has(rw.id))
+        .map(rw => ({
+          remoteId: rw.id,
+          userId: rw.user_id,
+          date: rw.date,
+          weight: rw.weight,
+          bmi: rw.bmi,
+          fatPercent: rw.fat_percent,
+          muscleMass: rw.muscle_mass,
+          source: rw.source,
+          notes: rw.notes,
+          syncStatus: 'synced' as const,
+        }));
+      if (newWeight.length) await db.weightLogs.bulkAdd(newWeight);
     }
   } catch (err) {
     console.warn('Sync pull failed:', err);
