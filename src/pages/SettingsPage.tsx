@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { syncAll } from '../lib/sync';
 import { importCSVData } from '../db/csv-import';
 import { db } from '../db/database';
+import { WithingsConnect } from '../components/settings/WithingsConnect';
 
 export function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -144,6 +145,9 @@ export function SettingsPage() {
           </button>
         </div>
       )}
+
+      {/* Integrations */}
+      {user && <WithingsConnect />}
 
       {/* Data */}
       <div className="bg-surface rounded-xl p-4 mb-4">
