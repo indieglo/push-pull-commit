@@ -31,17 +31,37 @@ export function SettingsPage() {
       db.bloodPressure.where('syncStatus').equals('pending').count(),
       db.weightLogs.where('syncStatus').equals('pending').count(),
     ]);
-    // Breakdown: how many pending workouts are incomplete (missing completedAt) vs complete
+    // Detail each incomplete workout so the user can decide to discard or keep
     const pendingWorkoutRows = await db.workouts.where('syncStatus').equals('pending').toArray();
-    const incompleteWorkouts = pendingWorkoutRows.filter(w => !w.completedAt).length;
+    const incompleteRows = pendingWorkoutRows.filter(w => !w.completedAt);
+    const incompleteDetails = await Promise.all(
+      incompleteRows.map(async (w) => {
+        const weRows = await db.workoutExercises.where('workoutId').equals(w.id!).toArray();
+        let setCount = 0;
+        for (const we of weRows) {
+          setCount += await db.exerciseSets.where('workoutExerciseId').equals(we.id!).count();
+        }
+        return {
+          id: w.id!,
+          date: w.date,
+          name: w.name ?? 'Untitled',
+          startedAt: w.startedAt,
+          exerciseCount: weRows.length,
+          setCount,
+        };
+      })
+    );
     return {
       exercises, workouts, workoutExercises, sets, bpReadings, weightLogs,
-      pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight, incompleteWorkouts,
+      pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight,
+      incompleteWorkouts: incompleteRows.length,
+      incompleteDetails,
       pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight,
     };
   }) ?? {
     exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0,
-    pendingWorkouts: 0, pendingWEs: 0, pendingSets: 0, pendingBP: 0, pendingWeight: 0, incompleteWorkouts: 0,
+    pendingWorkouts: 0, pendingWEs: 0, pendingSets: 0, pendingBP: 0, pendingWeight: 0,
+    incompleteWorkouts: 0, incompleteDetails: [],
     pending: 0,
   };
 
@@ -83,40 +103,72 @@ export function SettingsPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleRepairSync = async () => {
-    // Find incomplete workouts (no completedAt) and decide per workout whether to complete or delete.
+  const handleDiscardIncomplete = async () => {
     const incomplete = await db.workouts.filter(w => !w.completedAt).toArray();
     if (incomplete.length === 0) {
-      alert('No incomplete workouts to repair.');
+      alert('No incomplete workouts to discard.');
       return;
     }
 
-    let completed = 0;
-    let deleted = 0;
-    for (const w of incomplete) {
-      const childCount = await db.workoutExercises.where('workoutId').equals(w.id!).count();
-      if (childCount > 0) {
-        // Has work logged — mark it completed so it (and its children) can sync.
-        const completedAt = w.startedAt ?? new Date().toISOString();
-        await db.workouts.update(w.id!, {
-          completedAt,
-          syncStatus: 'pending',
-        });
-        completed++;
-      } else {
-        // No children — abandoned empty workout. Safe to drop.
-        await db.workouts.delete(w.id!);
-        deleted++;
-      }
+    if (!confirm(`Permanently delete ${incomplete.length} incomplete workout${incomplete.length !== 1 ? 's' : ''} and their exercises and sets? This matches how Cancel on an active workout should have behaved.`)) {
+      return;
     }
 
-    // Clear active workout pointer if it referenced a repaired one
+    let deletedSets = 0;
+    let deletedWEs = 0;
+    for (const w of incomplete) {
+      const weRows = await db.workoutExercises.where('workoutId').equals(w.id!).toArray();
+      for (const we of weRows) {
+        deletedSets += await db.exerciseSets.where('workoutExerciseId').equals(we.id!).count();
+        await db.exerciseSets.where('workoutExerciseId').equals(we.id!).delete();
+      }
+      deletedWEs += weRows.length;
+      await db.workoutExercises.where('workoutId').equals(w.id!).delete();
+      await db.workouts.delete(w.id!);
+    }
+
     const activeId = localStorage.getItem('activeWorkoutId');
     if (activeId && incomplete.some(w => String(w.id) === activeId)) {
       localStorage.removeItem('activeWorkoutId');
     }
 
-    alert(`Repaired: ${completed} completed, ${deleted} empty deleted. Hit Sync Now to push.`);
+    alert(`Discarded ${incomplete.length} workout${incomplete.length !== 1 ? 's' : ''}, ${deletedWEs} exercise entries, ${deletedSets} sets.`);
+  };
+
+  const handleKeepIncomplete = async () => {
+    const incomplete = await db.workouts.filter(w => !w.completedAt).toArray();
+    if (incomplete.length === 0) return;
+    if (!confirm(`Mark ${incomplete.length} incomplete workout${incomplete.length !== 1 ? 's' : ''} as completed so they can sync? Only do this if these are real workouts you forgot to finish.`)) {
+      return;
+    }
+    for (const w of incomplete) {
+      await db.workouts.update(w.id!, {
+        completedAt: w.startedAt ?? new Date().toISOString(),
+        syncStatus: 'pending',
+      });
+    }
+    alert(`Marked ${incomplete.length} as completed. Hit Sync Now to push.`);
+  };
+
+  const discardOne = async (workoutId: number) => {
+    if (!confirm('Discard this workout and all its sets?')) return;
+    const weRows = await db.workoutExercises.where('workoutId').equals(workoutId).toArray();
+    for (const we of weRows) {
+      await db.exerciseSets.where('workoutExerciseId').equals(we.id!).delete();
+    }
+    await db.workoutExercises.where('workoutId').equals(workoutId).delete();
+    await db.workouts.delete(workoutId);
+    const activeId = localStorage.getItem('activeWorkoutId');
+    if (activeId === String(workoutId)) localStorage.removeItem('activeWorkoutId');
+  };
+
+  const keepOne = async (workoutId: number) => {
+    const w = await db.workouts.get(workoutId);
+    if (!w) return;
+    await db.workouts.update(workoutId, {
+      completedAt: w.startedAt ?? new Date().toISOString(),
+      syncStatus: 'pending',
+    });
   };
 
   const handleClearData = async () => {
@@ -261,18 +313,51 @@ export function SettingsPage() {
             {dbStats.pendingBP > 0 && <div>• {dbStats.pendingBP} BP readings</div>}
             {dbStats.pendingWeight > 0 && <div>• {dbStats.pendingWeight} weight logs</div>}
             {dbStats.incompleteWorkouts > 0 && (
-              <>
-                <div className="mt-2 text-gray-400">
-                  {dbStats.incompleteWorkouts} incomplete workout{dbStats.incompleteWorkouts !== 1 ? 's are' : ' is'} blocking the sync. Repair them to push their exercises and sets.
+              <div className="mt-3 space-y-2">
+                <div className="text-gray-400">
+                  {dbStats.incompleteWorkouts} incomplete workout{dbStats.incompleteWorkouts !== 1 ? 's are' : ' is'} blocking the sync. Incomplete workouts should have been discarded when cancelled — these are likely leftovers.
+                </div>
+                <div className="bg-background rounded-lg p-2 space-y-2 max-h-64 overflow-y-auto">
+                  {dbStats.incompleteDetails.map((w) => (
+                    <div key={w.id} className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-gray-200 text-sm truncate">{w.date} — {w.name}</div>
+                        <div className="text-gray-500 text-[11px] font-mono">{w.exerciseCount} exercises, {w.setCount} sets</div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          onClick={() => keepOne(w.id)}
+                          className="px-2 py-1 rounded border border-gray-600 text-gray-300 text-[11px] hover:text-white hover:border-brand-light transition-colors"
+                          title="Mark this workout completed so it syncs"
+                        >
+                          Keep
+                        </button>
+                        <button
+                          onClick={() => discardOne(w.id)}
+                          className="px-2 py-1 rounded border border-danger/30 text-danger/80 text-[11px] hover:text-danger hover:border-danger transition-colors"
+                          title="Permanently delete this workout and its data"
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <button
-                  onClick={handleRepairSync}
-                  className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-yellow-400/20 text-yellow-300 font-medium hover:bg-yellow-400/30 transition-colors"
+                  onClick={handleDiscardIncomplete}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-danger/20 text-danger font-medium hover:bg-danger/30 transition-colors"
                 >
-                  <Wrench size={14} />
-                  Repair Incomplete Workouts
+                  <Trash2 size={14} />
+                  Discard All Incomplete
                 </button>
-              </>
+                <button
+                  onClick={handleKeepIncomplete}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-600 text-gray-400 hover:text-gray-200 transition-colors text-xs"
+                >
+                  <Wrench size={12} />
+                  Keep and Mark Completed
+                </button>
+              </div>
             )}
           </div>
         )}
