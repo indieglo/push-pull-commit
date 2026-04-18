@@ -120,8 +120,11 @@ export function HealthHistory() {
                           {diff > 0 ? '+' : ''}{diff.toFixed(1)}
                         </span>
                       )}
-                      {wl.fatPercent && (
-                        <span className="text-sm text-gray-400">{wl.fatPercent}% fat</span>
+                      {wl.fatPercent != null && (
+                        <span className="text-sm text-gray-400">{wl.fatPercent.toFixed(1)}% fat</span>
+                      )}
+                      {wl.muscleMass != null && (
+                        <span className="text-sm text-gray-400">{wl.muscleMass.toFixed(1)}kg muscle</span>
                       )}
                     </div>
                     <div className="text-xs text-gray-500">

@@ -31,11 +31,19 @@ export function SettingsPage() {
       db.bloodPressure.where('syncStatus').equals('pending').count(),
       db.weightLogs.where('syncStatus').equals('pending').count(),
     ]);
+    // Breakdown: how many pending workouts are incomplete (missing completedAt) vs complete
+    const pendingWorkoutRows = await db.workouts.where('syncStatus').equals('pending').toArray();
+    const incompleteWorkouts = pendingWorkoutRows.filter(w => !w.completedAt).length;
     return {
       exercises, workouts, workoutExercises, sets, bpReadings, weightLogs,
+      pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight, incompleteWorkouts,
       pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight,
     };
-  }) ?? { exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0, pending: 0 };
+  }) ?? {
+    exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0,
+    pendingWorkouts: 0, pendingWEs: 0, pendingSets: 0, pendingBP: 0, pendingWeight: 0, incompleteWorkouts: 0,
+    pending: 0,
+  };
 
   const handleSync = async () => {
     if (!user) return;
@@ -203,8 +211,20 @@ export function SettingsPage() {
           ))}
         </div>
         {dbStats.pending > 0 && (
-          <div className="mt-2 text-xs text-yellow-400">
-            {dbStats.pending} pending sync
+          <div className="mt-3 p-2 rounded-lg bg-yellow-400/10 border border-yellow-400/20 text-xs text-yellow-400 space-y-0.5">
+            <div className="font-semibold">{dbStats.pending} pending sync</div>
+            {dbStats.pendingWorkouts > 0 && (
+              <div>• {dbStats.pendingWorkouts} workout{dbStats.pendingWorkouts !== 1 ? 's' : ''}{dbStats.incompleteWorkouts > 0 ? ` (${dbStats.incompleteWorkouts} incomplete)` : ''}</div>
+            )}
+            {dbStats.pendingWEs > 0 && <div>• {dbStats.pendingWEs} exercise entries</div>}
+            {dbStats.pendingSets > 0 && <div>• {dbStats.pendingSets} sets</div>}
+            {dbStats.pendingBP > 0 && <div>• {dbStats.pendingBP} BP readings</div>}
+            {dbStats.pendingWeight > 0 && <div>• {dbStats.pendingWeight} weight logs</div>}
+            {dbStats.incompleteWorkouts > 0 && (
+              <div className="mt-1 text-gray-400">
+                Incomplete workouts block their exercises and sets from syncing. Complete or delete them to resolve.
+              </div>
+            )}
           </div>
         )}
       </div>
