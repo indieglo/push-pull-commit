@@ -1,4 +1,4 @@
-import { Settings, LogOut, Upload, Trash2, AlertTriangle } from 'lucide-react';
+import { Settings, LogOut, Upload, Trash2, AlertTriangle, Wrench } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuth } from '../hooks/useAuth';
@@ -49,8 +49,12 @@ export function SettingsPage() {
     if (!user) return;
     setSyncing(true);
     try {
-      await syncAll(user.id);
-      alert('Sync complete!');
+      const result = await syncAll(user.id);
+      if (result.errors.length > 0) {
+        alert(`Sync finished with ${result.errors.length} error(s):\n\n${result.errors.slice(0, 5).join('\n')}`);
+      } else {
+        alert('Sync complete!');
+      }
     } catch {
       alert('Sync failed. Check your connection.');
     }
@@ -77,6 +81,42 @@ export function SettingsPage() {
     setImporting(false);
     // Reset input so the same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRepairSync = async () => {
+    // Find incomplete workouts (no completedAt) and decide per workout whether to complete or delete.
+    const incomplete = await db.workouts.filter(w => !w.completedAt).toArray();
+    if (incomplete.length === 0) {
+      alert('No incomplete workouts to repair.');
+      return;
+    }
+
+    let completed = 0;
+    let deleted = 0;
+    for (const w of incomplete) {
+      const childCount = await db.workoutExercises.where('workoutId').equals(w.id!).count();
+      if (childCount > 0) {
+        // Has work logged — mark it completed so it (and its children) can sync.
+        const completedAt = w.startedAt ?? new Date().toISOString();
+        await db.workouts.update(w.id!, {
+          completedAt,
+          syncStatus: 'pending',
+        });
+        completed++;
+      } else {
+        // No children — abandoned empty workout. Safe to drop.
+        await db.workouts.delete(w.id!);
+        deleted++;
+      }
+    }
+
+    // Clear active workout pointer if it referenced a repaired one
+    const activeId = localStorage.getItem('activeWorkoutId');
+    if (activeId && incomplete.some(w => String(w.id) === activeId)) {
+      localStorage.removeItem('activeWorkoutId');
+    }
+
+    alert(`Repaired: ${completed} completed, ${deleted} empty deleted. Hit Sync Now to push.`);
   };
 
   const handleClearData = async () => {
@@ -221,9 +261,18 @@ export function SettingsPage() {
             {dbStats.pendingBP > 0 && <div>• {dbStats.pendingBP} BP readings</div>}
             {dbStats.pendingWeight > 0 && <div>• {dbStats.pendingWeight} weight logs</div>}
             {dbStats.incompleteWorkouts > 0 && (
-              <div className="mt-1 text-gray-400">
-                Incomplete workouts block their exercises and sets from syncing. Complete or delete them to resolve.
-              </div>
+              <>
+                <div className="mt-2 text-gray-400">
+                  {dbStats.incompleteWorkouts} incomplete workout{dbStats.incompleteWorkouts !== 1 ? 's are' : ' is'} blocking the sync. Repair them to push their exercises and sets.
+                </div>
+                <button
+                  onClick={handleRepairSync}
+                  className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-yellow-400/20 text-yellow-300 font-medium hover:bg-yellow-400/30 transition-colors"
+                >
+                  <Wrench size={14} />
+                  Repair Incomplete Workouts
+                </button>
+              </>
             )}
           </div>
         )}

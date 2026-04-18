@@ -5,6 +5,18 @@ import { db } from '../db/database';
 // Prevent concurrent sync runs
 let isSyncing = false;
 
+// Accumulate errors during a sync run so the UI can surface them
+const syncErrors: string[] = [];
+function recordError(context: string, error: { message?: string } | null | undefined) {
+  if (!error) return;
+  const msg = `${context}: ${error.message ?? 'unknown error'}`;
+  console.warn('[sync]', msg);
+  syncErrors.push(msg);
+}
+export function getLastSyncErrors(): string[] {
+  return [...syncErrors];
+}
+
 // Push all pending local changes to Supabase
 export async function pushToSupabase(userId: string) {
   if (!isSupabaseConfigured) return;
@@ -85,6 +97,8 @@ async function pushWorkouts(userId: string) {
 
       if (!error) {
         await db.workouts.update(workout.id!, { syncStatus: 'synced' });
+      } else {
+        recordError(`workout update id=${workout.id}`, error);
       }
     } else {
       // Insert new
@@ -106,6 +120,8 @@ async function pushWorkouts(userId: string) {
           remoteId: data.id,
           syncStatus: 'synced',
         });
+      } else {
+        recordError(`workout insert id=${workout.id}`, error);
       }
     }
   }
@@ -464,15 +480,18 @@ export async function pullFromSupabase(userId: string) {
 }
 
 // Background sync - call on app open and periodically
-export async function syncAll(userId: string) {
-  if (!isSupabaseConfigured || isSyncing) return;
+export async function syncAll(userId: string): Promise<{ errors: string[] }> {
+  if (!isSupabaseConfigured || isSyncing) return { errors: [] };
   isSyncing = true;
+  syncErrors.length = 0;
   try {
     await pushToSupabase(userId);
     await pullFromSupabase(userId);
   } catch (err) {
     console.warn('Sync failed:', err);
+    syncErrors.push(`Sync aborted: ${(err as Error).message}`);
   } finally {
     isSyncing = false;
   }
+  return { errors: [...syncErrors] };
 }
