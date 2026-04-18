@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { getSupabaseAdmin } from './supabase-admin';
+import { getSupabaseAdmin } from './supabase-admin.js';
 
 const WITHINGS_AUTHORIZE_URL = 'https://account.withings.com/oauth2_user/authorize2';
 const WITHINGS_TOKEN_URL = 'https://wbsapi.withings.net/v2/oauth2';

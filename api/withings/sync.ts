@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { fetchMeasures, getValidAccessToken } from '../_lib/withings';
-import { getSupabaseAdmin, verifyUserToken } from '../_lib/supabase-admin';
+import { fetchMeasures, getValidAccessToken } from '../_lib/withings.js';
+import { getSupabaseAdmin, verifyUserToken } from '../_lib/supabase-admin.js';
 
 interface SyncResult {
   userId: string;

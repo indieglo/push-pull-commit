@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { exchangeCodeForTokens, verifyState } from '../_lib/withings';
-import { getSupabaseAdmin } from '../_lib/supabase-admin';
+import { exchangeCodeForTokens, verifyState } from '../_lib/withings.js';
+import { getSupabaseAdmin } from '../_lib/supabase-admin.js';
 
 function redirectToSettings(res: VercelResponse, status: 'success' | 'error', message?: string) {
   const params = new URLSearchParams({ withings: status });

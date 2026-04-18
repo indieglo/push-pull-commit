@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { buildAuthorizeUrl, signState } from '../_lib/withings';
+import { buildAuthorizeUrl, signState } from '../_lib/withings.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = typeof req.query.user_id === 'string' ? req.query.user_id : null;
