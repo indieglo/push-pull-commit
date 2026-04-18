@@ -35,6 +35,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Don't serve the SPA shell for API routes — let them hit the server.
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],
