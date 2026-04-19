@@ -245,11 +245,18 @@ export function useWorkout() {
   };
 }
 
-// Get the last performance for an exercise (across all completed workouts)
+// Get the last performance for an exercise (across all completed workouts).
+// Matches by name as well as id so cross-device syncs (which duplicate the
+// seed library with different local ids) still find prior sessions.
 export async function getLastPerformance(exerciseId: number): Promise<LastPerformance | null> {
-  // Find the most recent completed workout that includes this exercise
-  const allWes = await db.workoutExercises
-    .where('exerciseId').equals(exerciseId).toArray();
+  const exercise = await db.exercises.get(exerciseId);
+  if (!exercise) return null;
+
+  const siblings = await db.exercises.where('name').equalsIgnoreCase(exercise.name).toArray();
+  const matchingIds = siblings.map(e => e.id!).filter(id => id !== undefined);
+  if (!matchingIds.length) return null;
+
+  const allWes = await db.workoutExercises.where('exerciseId').anyOf(matchingIds).toArray();
 
   if (!allWes.length) return null;
 
@@ -285,8 +292,14 @@ export async function getLastPerformance(exerciseId: number): Promise<LastPerfor
 
 // Get last cardio performance (duration + distance)
 export async function getLastCardioPerformance(exerciseId: number): Promise<LastPerformance | null> {
-  const allWes = await db.workoutExercises
-    .where('exerciseId').equals(exerciseId).toArray();
+  const exercise = await db.exercises.get(exerciseId);
+  if (!exercise) return null;
+
+  const siblings = await db.exercises.where('name').equalsIgnoreCase(exercise.name).toArray();
+  const matchingIds = siblings.map(e => e.id!).filter(id => id !== undefined);
+  if (!matchingIds.length) return null;
+
+  const allWes = await db.workoutExercises.where('exerciseId').anyOf(matchingIds).toArray();
 
   if (!allWes.length) return null;
 

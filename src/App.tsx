@@ -7,14 +7,15 @@ import { HistoryPage } from './pages/HistoryPage';
 import { HealthPage } from './pages/HealthPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useAuth } from './hooks/useAuth';
-import { seedDatabase } from './db/seed';
+import { seedDatabase, purgeStaleIncompleteWorkouts } from './db/seed';
 
 function App() {
   const { user, loading, isSupabaseConfigured } = useAuth();
 
-  // Seed exercise library on first load
+  // Seed exercise library on first load and drop abandoned demo sessions
   useEffect(() => {
     seedDatabase();
+    purgeStaleIncompleteWorkouts().catch(() => {});
   }, []);
 
   if (loading) {

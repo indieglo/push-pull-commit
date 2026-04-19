@@ -64,3 +64,29 @@ export async function seedDatabase() {
     await db.exercises.bulkAdd(SEED_EXERCISES);
   }
 }
+
+// Purge incomplete workouts older than this many hours. Protects real in-progress
+// workouts if you briefly lock the phone, while cleaning up demos and abandoned sessions.
+const STALE_HOURS = 6;
+
+export async function purgeStaleIncompleteWorkouts() {
+  const cutoff = Date.now() - STALE_HOURS * 60 * 60 * 1000;
+  const activeId = localStorage.getItem('activeWorkoutId');
+  const activeIdNum = activeId ? Number(activeId) : null;
+
+  const incomplete = await db.workouts.filter(w => !w.completedAt).toArray();
+  let purged = 0;
+  for (const w of incomplete) {
+    if (activeIdNum !== null && w.id === activeIdNum) continue;
+    const started = w.startedAt ? new Date(w.startedAt).getTime() : 0;
+    if (started && started > cutoff) continue;
+    const weRows = await db.workoutExercises.where('workoutId').equals(w.id!).toArray();
+    for (const we of weRows) {
+      await db.exerciseSets.where('workoutExerciseId').equals(we.id!).delete();
+    }
+    await db.workoutExercises.where('workoutId').equals(w.id!).delete();
+    await db.workouts.delete(w.id!);
+    purged++;
+  }
+  return purged;
+}
