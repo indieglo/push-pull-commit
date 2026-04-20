@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Scale, Check, AlertCircle, RefreshCw, Link2Off } from 'lucide-react';
+import { Activity, Check, AlertCircle, RefreshCw, Link2Off } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 
@@ -30,7 +30,7 @@ function formatAgo(iso: string | null): string {
   return `${days}d ago`;
 }
 
-export function WithingsConnect() {
+export function GoogleHealthConnect() {
   const { user } = useAuth();
   const [integration, setIntegration] = useState<IntegrationRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export function WithingsConnect() {
       .from('user_integrations')
       .select('provider, connected_at, last_sync_at, scope')
       .eq('user_id', user.id)
-      .eq('provider', 'withings')
+      .eq('provider', 'google_health')
       .maybeSingle();
     setIntegration(data ?? null);
     setLoading(false);
@@ -51,11 +51,10 @@ export function WithingsConnect() {
 
   useEffect(() => {
     loadIntegration();
-    // Check for OAuth callback status in URL
     const params = new URLSearchParams(window.location.search);
-    const status = params.get('withings');
+    const status = params.get('google_health');
     if (status === 'success') {
-      setMessage({ type: 'success', text: 'Withings connected!' });
+      setMessage({ type: 'success', text: 'Google Health connected!' });
       window.history.replaceState({}, '', window.location.pathname);
     } else if (status === 'error') {
       setMessage({ type: 'error', text: params.get('message') || 'Connection failed' });
@@ -66,7 +65,7 @@ export function WithingsConnect() {
 
   const handleConnect = () => {
     if (!user) return;
-    window.location.href = `/api/withings/auth?user_id=${encodeURIComponent(user.id)}`;
+    window.location.href = `/api/google-health/auth?user_id=${encodeURIComponent(user.id)}`;
   };
 
   const handleSync = async () => {
@@ -76,10 +75,11 @@ export function WithingsConnect() {
     try {
       const headers = await getAuthHeaders();
       if (!headers) throw new Error('Not signed in');
-      const res = await fetch('/api/withings/sync', { method: 'POST', headers });
+      const res = await fetch('/api/google-health/sync', { method: 'POST', headers });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Sync failed');
-      const { inserted, updated } = json.result || {};
+      const { inserted, updated, error } = json.result || {};
+      if (error) throw new Error(error);
       setMessage({
         type: 'success',
         text: `Synced: ${inserted ?? 0} new, ${updated ?? 0} updated`,
@@ -93,11 +93,11 @@ export function WithingsConnect() {
 
   const handleDisconnect = async () => {
     if (!user) return;
-    if (!confirm('Disconnect Withings? Your synced weigh-ins will remain, but new data will stop syncing.')) return;
+    if (!confirm('Disconnect Google Health? Synced fitness data will remain, but new data will stop syncing.')) return;
     try {
       const headers = await getAuthHeaders();
       if (!headers) throw new Error('Not signed in');
-      const res = await fetch('/api/withings/disconnect', { method: 'POST', headers });
+      const res = await fetch('/api/google-health/disconnect', { method: 'POST', headers });
       if (!res.ok) throw new Error('Disconnect failed');
       setIntegration(null);
       setMessage({ type: 'success', text: 'Disconnected' });
@@ -113,14 +113,14 @@ export function WithingsConnect() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center">
-            <Scale size={20} className="text-brand-light" />
+            <Activity size={20} className="text-brand-light" />
           </div>
           <div>
-            <div className="text-white font-medium">Withings</div>
+            <div className="text-white font-medium">Google Health</div>
             <div className="text-xs text-gray-500">
               {loading ? 'Loading...' : integration
                 ? `Connected • last sync ${formatAgo(integration.last_sync_at)}`
-                : 'Pull weight from Withings scale'}
+                : 'Pull steps, sleep, resting HR from Fitbit / Pixel Watch'}
             </div>
           </div>
         </div>
@@ -148,7 +148,7 @@ export function WithingsConnect() {
           disabled={loading}
           className="w-full py-2.5 rounded-lg bg-brand text-white font-medium disabled:opacity-50 mt-2"
         >
-          Connect Withings
+          Connect Google Health
         </button>
       ) : (
         <div className="flex gap-2 mt-3">

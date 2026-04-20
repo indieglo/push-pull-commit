@@ -7,6 +7,10 @@
     {
       "path": "/api/withings/sync",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/google-health/sync",
+      "schedule": "30 6 * * *"
     }
   ],
   "rewrites": [
