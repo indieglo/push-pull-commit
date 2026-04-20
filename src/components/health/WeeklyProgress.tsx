@@ -110,17 +110,17 @@ export function WeeklyProgress() {
 
         <Row
           icon={<Heart size={16} className="text-brand-light" />}
-          label="Systolic"
-          thisValue={bpSysThis}
-          priorValue={bpSysPrior}
+          label="Diastolic"
+          thisValue={bpDiaThis}
+          priorValue={bpDiaPrior}
           unit=""
           decimals={0}
           direction="down-good"
           thisCount={bpThis.length}
           priorCount={bpPrior.length}
           subLabel={
-            bpDiaThis != null && bpDiaPrior != null
-              ? `dia ${Math.round(bpDiaThis)} vs ${Math.round(bpDiaPrior)}`
+            bpSysThis != null && bpSysPrior != null
+              ? `sys ${Math.round(bpSysThis)} vs ${Math.round(bpSysPrior)}`
               : undefined
           }
         />
