@@ -6,8 +6,6 @@ import { BloodPressureForm } from '../components/health/BloodPressureForm';
 import { WeightForm } from '../components/health/WeightForm';
 import { AlcoholForm } from '../components/health/AlcoholForm';
 import { HealthHistory } from '../components/health/HealthHistory';
-import { FitnessSummary } from '../components/health/FitnessSummary';
-import { WeeklyProgress } from '../components/health/WeeklyProgress';
 
 type ActiveForm = null | 'bp' | 'weight' | 'alcohol';
 
@@ -76,14 +74,7 @@ export function HealthPage() {
         </div>
       )}
 
-      {/* Week-over-week motivation card */}
-      <WeeklyProgress />
-
-      {/* Fitness summary (from Google Health / future Oura) */}
-      <FitnessSummary />
-
-      {/* Quick-add buttons — sit above History so they're next to the
-          readouts they feed into */}
+      {/* Quick-add buttons */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <button
           onClick={() => setActiveForm(activeForm === 'bp' ? null : 'bp')}

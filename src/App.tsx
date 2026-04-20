@@ -5,6 +5,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { WorkoutPage } from './pages/WorkoutPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { HealthPage } from './pages/HealthPage';
+import { TrendsPage } from './pages/TrendsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useAuth } from './hooks/useAuth';
 import { seedDatabase, purgeStaleIncompleteWorkouts } from './db/seed';
@@ -38,6 +39,7 @@ function App() {
           <Route path="/" element={<WorkoutPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/health" element={<HealthPage />} />
+          <Route path="/trends" element={<TrendsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
