@@ -18,32 +18,34 @@ export function SettingsPage() {
   // incomplete-detail loop can't wipe them back to 0s during sync churn.
   const dbStats = useLiveQuery(async () => {
     try {
-      const [exercises, workouts, workoutExercises, sets, bpReadings, weightLogs] = await Promise.all([
+      const [exercises, workouts, workoutExercises, sets, bpReadings, weightLogs, alcoholLogs] = await Promise.all([
         db.exercises.count(),
         db.workouts.count(),
         db.workoutExercises.count(),
         db.exerciseSets.count(),
         db.bloodPressure.count(),
         db.weightLogs.count(),
+        db.alcoholLogs.count(),
       ]);
-      const [pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight] = await Promise.all([
+      const [pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight, pendingAlcohol] = await Promise.all([
         db.workouts.where('syncStatus').equals('pending').count(),
         db.workoutExercises.where('syncStatus').equals('pending').count(),
         db.exerciseSets.where('syncStatus').equals('pending').count(),
         db.bloodPressure.where('syncStatus').equals('pending').count(),
         db.weightLogs.where('syncStatus').equals('pending').count(),
+        db.alcoholLogs.where('syncStatus').equals('pending').count(),
       ]);
       return {
-        exercises, workouts, workoutExercises, sets, bpReadings, weightLogs,
-        pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight,
-        pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight,
+        exercises, workouts, workoutExercises, sets, bpReadings, weightLogs, alcoholLogs,
+        pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight, pendingAlcohol,
+        pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight + pendingAlcohol,
       };
     } catch {
       return undefined; // keeps previous value rather than flashing fallback zeros
     }
   }) ?? {
-    exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0,
-    pendingWorkouts: 0, pendingWEs: 0, pendingSets: 0, pendingBP: 0, pendingWeight: 0,
+    exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0, alcoholLogs: 0,
+    pendingWorkouts: 0, pendingWEs: 0, pendingSets: 0, pendingBP: 0, pendingWeight: 0, pendingAlcohol: 0,
     pending: 0,
   };
 
@@ -305,6 +307,7 @@ export function SettingsPage() {
             { label: 'Sets Logged', count: dbStats.sets },
             { label: 'BP Readings', count: dbStats.bpReadings },
             { label: 'Weight Logs', count: dbStats.weightLogs },
+            { label: 'Alcohol Logs', count: dbStats.alcoholLogs },
           ].map(({ label, count }) => (
             <div key={label} className="flex justify-between text-sm px-2 py-1 rounded bg-background">
               <span className="text-gray-400">{label}</span>
@@ -322,6 +325,7 @@ export function SettingsPage() {
             {dbStats.pendingSets > 0 && <div>• {dbStats.pendingSets} sets</div>}
             {dbStats.pendingBP > 0 && <div>• {dbStats.pendingBP} BP readings</div>}
             {dbStats.pendingWeight > 0 && <div>• {dbStats.pendingWeight} weight logs</div>}
+            {dbStats.pendingAlcohol > 0 && <div>• {dbStats.pendingAlcohol} alcohol logs</div>}
             {incompleteWorkouts > 0 && (
               <div className="mt-3 space-y-2">
                 <div className="text-gray-400">

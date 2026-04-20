@@ -87,6 +87,16 @@ export interface WeightLog {
   syncStatus?: 'synced' | 'pending';
 }
 
+export interface AlcoholLog {
+  id?: number;
+  remoteId?: string;
+  userId?: string;
+  date: string; // ISO date
+  drinks: number; // standard drinks; halves allowed
+  notes?: string;
+  syncStatus?: 'synced' | 'pending';
+}
+
 // For "last time" display
 export interface LastPerformance {
   date: string;

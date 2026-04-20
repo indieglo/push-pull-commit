@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Heart, Weight, AlertCircle } from 'lucide-react';
+import { Heart, Weight, Wine, AlertCircle } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
 import { BloodPressureForm } from '../components/health/BloodPressureForm';
 import { WeightForm } from '../components/health/WeightForm';
+import { AlcoholForm } from '../components/health/AlcoholForm';
 import { HealthHistory } from '../components/health/HealthHistory';
 
-type ActiveForm = null | 'bp' | 'weight';
+type ActiveForm = null | 'bp' | 'weight' | 'alcohol';
 
 function daysAgo(dateStr: string): number {
   const date = new Date(dateStr + 'T00:00:00');
@@ -30,12 +31,17 @@ export function HealthPage() {
   const recentWeight = useLiveQuery(
     () => db.weightLogs.orderBy('date').reverse().limit(1).toArray()
   );
+  const recentAlcohol = useLiveQuery(
+    () => db.alcoholLogs.orderBy('date').reverse().limit(1).toArray()
+  );
 
   const lastBP = recentBP?.[0];
   const lastWeight = recentWeight?.[0];
+  const lastAlcohol = recentAlcohol?.[0];
 
   const bpDays = lastBP ? daysAgo(lastBP.date) : null;
   const weightDays = lastWeight ? daysAgo(lastWeight.date) : null;
+  const alcoholDays = lastAlcohol ? daysAgo(lastAlcohol.date) : null;
   const bpOverdue = bpDays === null || bpDays >= 4; // nudge if no reading in 4+ days
   const weightOverdue = weightDays === null || weightDays >= 8; // nudge if no reading in 8+ days
 
@@ -69,7 +75,7 @@ export function HealthPage() {
       )}
 
       {/* Quick-add buttons */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-6">
         <button
           onClick={() => setActiveForm(activeForm === 'bp' ? null : 'bp')}
           className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
@@ -81,8 +87,9 @@ export function HealthPage() {
           <Heart size={24} />
           <span className="text-sm font-medium">Blood Pressure</span>
           {lastBP && (
-            <span className="text-xs text-gray-500">
-              Last: {lastBP.systolic}/{lastBP.diastolic} ({formatDaysAgo(bpDays!)})
+            <span className="text-xs text-gray-500 text-center">
+              {lastBP.systolic}/{lastBP.diastolic}
+              <br />({formatDaysAgo(bpDays!)})
             </span>
           )}
         </button>
@@ -98,8 +105,27 @@ export function HealthPage() {
           <Weight size={24} />
           <span className="text-sm font-medium">Weight</span>
           {lastWeight && (
-            <span className="text-xs text-gray-500">
-              Last: {lastWeight.weight}kg ({formatDaysAgo(weightDays!)})
+            <span className="text-xs text-gray-500 text-center">
+              {lastWeight.weight}kg
+              <br />({formatDaysAgo(weightDays!)})
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveForm(activeForm === 'alcohol' ? null : 'alcohol')}
+          className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
+            activeForm === 'alcohol'
+              ? 'bg-brand/20 border-brand-light text-brand-light'
+              : 'bg-surface border-gray-700 text-gray-300 hover:border-brand-light'
+          }`}
+        >
+          <Wine size={24} />
+          <span className="text-sm font-medium">Alcohol</span>
+          {lastAlcohol && (
+            <span className="text-xs text-gray-500 text-center">
+              {lastAlcohol.drinks} drink{lastAlcohol.drinks === 1 ? '' : 's'}
+              <br />({formatDaysAgo(alcoholDays!)})
             </span>
           )}
         </button>
@@ -111,6 +137,9 @@ export function HealthPage() {
       )}
       {activeForm === 'weight' && (
         <WeightForm onSave={() => setActiveForm(null)} />
+      )}
+      {activeForm === 'alcohol' && (
+        <AlcoholForm onSave={() => setActiveForm(null)} />
       )}
 
       {/* History */}

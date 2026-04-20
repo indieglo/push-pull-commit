@@ -27,6 +27,7 @@ export async function pushToSupabase(userId: string) {
   await pushExerciseSets();
   await pushBloodPressure(userId);
   await pushWeightLogs(userId);
+  await pushAlcoholLogs(userId);
 }
 
 async function pushExercises(userId: string) {
@@ -327,6 +328,43 @@ async function pushWeightLogs(userId: string) {
   }
 }
 
+async function pushAlcoholLogs(userId: string) {
+  const pending = await db.alcoholLogs.where('syncStatus').equals('pending').toArray();
+  for (const al of pending) {
+    if (al.remoteId) {
+      const { error } = await supabase
+        .from('alcohol_logs')
+        .update({
+          date: al.date,
+          drinks: al.drinks,
+          notes: al.notes,
+        })
+        .eq('id', al.remoteId);
+      if (!error) {
+        await db.alcoholLogs.update(al.id!, { syncStatus: 'synced' });
+      } else {
+        recordError(`alcohol_log update id=${al.id}`, error);
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('alcohol_logs')
+        .insert({
+          user_id: userId,
+          date: al.date,
+          drinks: al.drinks,
+          notes: al.notes,
+        })
+        .select()
+        .single();
+      if (!error && data) {
+        await db.alcoholLogs.update(al.id!, { remoteId: data.id, syncStatus: 'synced' });
+      } else {
+        recordError(`alcohol_log insert id=${al.id}`, error);
+      }
+    }
+  }
+}
+
 // Pull remote data into local DB (for cross-device sync)
 export async function pullFromSupabase(userId: string) {
   if (!isSupabaseConfigured) return;
@@ -497,6 +535,29 @@ export async function pullFromSupabase(userId: string) {
           syncStatus: 'synced' as const,
         }));
       if (newWeight.length) await db.weightLogs.bulkAdd(newWeight);
+    }
+
+    // Pull alcohol logs
+    const existingAlcohol = await db.alcoholLogs.toArray();
+    const alcoholRemoteIds = new Set(existingAlcohol.map(a => a.remoteId).filter(Boolean));
+
+    const { data: remoteAlcohol } = await supabase
+      .from('alcohol_logs')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (remoteAlcohol) {
+      const newAlcohol = remoteAlcohol
+        .filter(ra => !alcoholRemoteIds.has(ra.id))
+        .map(ra => ({
+          remoteId: ra.id,
+          userId: ra.user_id,
+          date: ra.date,
+          drinks: ra.drinks,
+          notes: ra.notes,
+          syncStatus: 'synced' as const,
+        }));
+      if (newAlcohol.length) await db.alcoholLogs.bulkAdd(newAlcohol);
     }
   } catch (err) {
     console.warn('Sync pull failed:', err);

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Exercise, Workout, WorkoutExercise, ExerciseSet, BloodPressureReading, WeightLog } from '../types';
+import type { Exercise, Workout, WorkoutExercise, ExerciseSet, BloodPressureReading, WeightLog, AlcoholLog } from '../types';
 
 export class PushPullCommitDB extends Dexie {
   exercises!: Table<Exercise, number>;
@@ -8,6 +8,7 @@ export class PushPullCommitDB extends Dexie {
   exerciseSets!: Table<ExerciseSet, number>;
   bloodPressure!: Table<BloodPressureReading, number>;
   weightLogs!: Table<WeightLog, number>;
+  alcoholLogs!: Table<AlcoholLog, number>;
 
   constructor() {
     super('PushPullCommitDB');
@@ -43,6 +44,17 @@ export class PushPullCommitDB extends Dexie {
       exerciseSets: '++id, workoutExerciseId, syncStatus, remoteId',
       bloodPressure: '++id, date, userId, syncStatus, remoteId',
       weightLogs: '++id, date, userId, syncStatus, remoteId, source',
+    });
+
+    // v5: Add alcohol logging
+    this.version(5).stores({
+      exercises: '++id, name, category, syncStatus, remoteId',
+      workouts: '++id, date, name, userId, syncStatus, remoteId',
+      workoutExercises: '++id, workoutId, exerciseId, syncStatus, remoteId',
+      exerciseSets: '++id, workoutExerciseId, syncStatus, remoteId',
+      bloodPressure: '++id, date, userId, syncStatus, remoteId',
+      weightLogs: '++id, date, userId, syncStatus, remoteId, source',
+      alcoholLogs: '++id, date, userId, syncStatus, remoteId',
     });
   }
 }
