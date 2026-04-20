@@ -108,21 +108,13 @@ export function WeeklyProgress() {
           priorCount={alcoholPrior.length}
         />
 
-        <Row
-          icon={<Heart size={16} className="text-brand-light" />}
-          label="Diastolic"
-          thisValue={bpDiaThis}
-          priorValue={bpDiaPrior}
-          unit=""
-          decimals={0}
-          direction="down-good"
+        <BPRow
+          sysThis={bpSysThis}
+          diaThis={bpDiaThis}
+          sysPrior={bpSysPrior}
+          diaPrior={bpDiaPrior}
           thisCount={bpThis.length}
           priorCount={bpPrior.length}
-          subLabel={
-            bpSysThis != null && bpSysPrior != null
-              ? `sys ${Math.round(bpSysThis)} vs ${Math.round(bpSysPrior)}`
-              : undefined
-          }
         />
 
         <Row
@@ -232,6 +224,57 @@ function Delta({
     <div className={`flex items-center gap-0.5 text-xs font-mono ${classes} w-20 justify-end`}>
       <Icon size={12} />
       <span>{display}</span>
+    </div>
+  );
+}
+
+// Blood pressure gets its own row so the paired systolic/diastolic value
+// can be shown as "118/76 vs 122/78". This week's number is color-coded:
+// green if either sys or dia improved (went down), red if both got worse.
+function BPRow({
+  sysThis, diaThis, sysPrior, diaPrior, thisCount, priorCount,
+}: {
+  sysThis: number | null;
+  diaThis: number | null;
+  sysPrior: number | null;
+  diaPrior: number | null;
+  thisCount: number;
+  priorCount: number;
+}) {
+  const hasBoth =
+    sysThis != null && diaThis != null && sysPrior != null && diaPrior != null;
+  const thinData = thisCount < 2 || priorCount < 2;
+
+  const format = (sys: number, dia: number) => `${Math.round(sys)}/${Math.round(dia)}`;
+
+  let toneClass = 'text-white';
+  if (hasBoth && !thinData) {
+    const sysDelta = Math.round(sysThis!) - Math.round(sysPrior!);
+    const diaDelta = Math.round(diaThis!) - Math.round(diaPrior!);
+    if (sysDelta === 0 && diaDelta === 0) toneClass = 'text-white';
+    else if (sysDelta < 0 || diaDelta < 0) toneClass = 'text-success'; // either improved
+    else toneClass = 'text-danger'; // both flat-or-worse, at least one worse
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-700 last:border-b-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <Heart size={16} className="text-brand-light" />
+        <div className="text-sm text-white">Blood Pressure</div>
+      </div>
+
+      {!hasBoth ? (
+        <div className="text-xs text-gray-500 text-right">
+          {sysThis == null && sysPrior == null ? 'No data yet' : 'Log more to see trend'}
+        </div>
+      ) : thinData ? (
+        <div className="text-xs text-gray-500 text-right">Log more to see trend</div>
+      ) : (
+        <div className="text-sm font-mono text-right">
+          <span className={toneClass}>{format(sysThis!, diaThis!)}</span>
+          <span className="text-gray-500"> vs {format(sysPrior!, diaPrior!)}</span>
+        </div>
+      )}
     </div>
   );
 }
