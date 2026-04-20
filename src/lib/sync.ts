@@ -49,6 +49,8 @@ async function pushExercises(userId: string) {
 
       if (!error) {
         await db.exercises.update(exercise.id!, { syncStatus: 'synced' });
+      } else {
+        recordError(`exercise update id=${exercise.id}`, error);
       }
     } else {
       // Insert new
@@ -72,6 +74,8 @@ async function pushExercises(userId: string) {
           remoteId: data.id,
           syncStatus: 'synced',
         });
+      } else {
+        recordError(`exercise insert id=${exercise.id}`, error);
       }
     }
   }
@@ -149,6 +153,8 @@ async function pushWorkoutExercises() {
 
       if (!error) {
         await db.workoutExercises.update(we.id!, { syncStatus: 'synced' });
+      } else {
+        recordError(`workout_exercise update id=${we.id}`, error);
       }
     } else {
       // Insert new
@@ -171,6 +177,8 @@ async function pushWorkoutExercises() {
           remoteId: data.id,
           syncStatus: 'synced',
         });
+      } else {
+        recordError(`workout_exercise insert id=${we.id}`, error);
       }
     }
   }
@@ -199,6 +207,8 @@ async function pushExerciseSets() {
 
       if (!error) {
         await db.exerciseSets.update(set.id!, { syncStatus: 'synced' });
+      } else {
+        recordError(`exercise_set update id=${set.id}`, error);
       }
     } else {
       // Insert new
@@ -222,6 +232,8 @@ async function pushExerciseSets() {
           remoteId: data.id,
           syncStatus: 'synced',
         });
+      } else {
+        recordError(`exercise_set insert id=${set.id}`, error);
       }
     }
   }
@@ -242,7 +254,11 @@ async function pushBloodPressure(userId: string) {
           notes: bp.notes,
         })
         .eq('id', bp.remoteId);
-      if (!error) await db.bloodPressure.update(bp.id!, { syncStatus: 'synced' });
+      if (!error) {
+        await db.bloodPressure.update(bp.id!, { syncStatus: 'synced' });
+      } else {
+        recordError(`blood_pressure update id=${bp.id}`, error);
+      }
     } else {
       const { data, error } = await supabase
         .from('blood_pressure')
@@ -259,6 +275,8 @@ async function pushBloodPressure(userId: string) {
         .single();
       if (!error && data) {
         await db.bloodPressure.update(bp.id!, { remoteId: data.id, syncStatus: 'synced' });
+      } else {
+        recordError(`blood_pressure insert id=${bp.id}`, error);
       }
     }
   }
@@ -280,7 +298,11 @@ async function pushWeightLogs(userId: string) {
           notes: wl.notes,
         })
         .eq('id', wl.remoteId);
-      if (!error) await db.weightLogs.update(wl.id!, { syncStatus: 'synced' });
+      if (!error) {
+        await db.weightLogs.update(wl.id!, { syncStatus: 'synced' });
+      } else {
+        recordError(`weight_log update id=${wl.id}`, error);
+      }
     } else {
       const { data, error } = await supabase
         .from('weight_logs')
@@ -298,6 +320,8 @@ async function pushWeightLogs(userId: string) {
         .single();
       if (!error && data) {
         await db.weightLogs.update(wl.id!, { remoteId: data.id, syncStatus: 'synced' });
+      } else {
+        recordError(`weight_log insert id=${wl.id}`, error);
       }
     }
   }

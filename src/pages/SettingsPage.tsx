@@ -14,56 +14,66 @@ export function SettingsPage() {
   const [importResult, setImportResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Live counts for local DB stats
+  // Cheap counts — kept in a separate live query so a throw in the expensive
+  // incomplete-detail loop can't wipe them back to 0s during sync churn.
   const dbStats = useLiveQuery(async () => {
-    const [exercises, workouts, workoutExercises, sets, bpReadings, weightLogs] = await Promise.all([
-      db.exercises.count(),
-      db.workouts.count(),
-      db.workoutExercises.count(),
-      db.exerciseSets.count(),
-      db.bloodPressure.count(),
-      db.weightLogs.count(),
-    ]);
-    const [pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight] = await Promise.all([
-      db.workouts.where('syncStatus').equals('pending').count(),
-      db.workoutExercises.where('syncStatus').equals('pending').count(),
-      db.exerciseSets.where('syncStatus').equals('pending').count(),
-      db.bloodPressure.where('syncStatus').equals('pending').count(),
-      db.weightLogs.where('syncStatus').equals('pending').count(),
-    ]);
-    // Detail each incomplete workout so the user can decide to discard or keep
-    const pendingWorkoutRows = await db.workouts.where('syncStatus').equals('pending').toArray();
-    const incompleteRows = pendingWorkoutRows.filter(w => !w.completedAt);
-    const incompleteDetails = await Promise.all(
-      incompleteRows.map(async (w) => {
-        const weRows = await db.workoutExercises.where('workoutId').equals(w.id!).toArray();
-        let setCount = 0;
-        for (const we of weRows) {
-          setCount += await db.exerciseSets.where('workoutExerciseId').equals(we.id!).count();
-        }
-        return {
-          id: w.id!,
-          date: w.date,
-          name: w.name ?? 'Untitled',
-          startedAt: w.startedAt,
-          exerciseCount: weRows.length,
-          setCount,
-        };
-      })
-    );
-    return {
-      exercises, workouts, workoutExercises, sets, bpReadings, weightLogs,
-      pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight,
-      incompleteWorkouts: incompleteRows.length,
-      incompleteDetails,
-      pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight,
-    };
+    try {
+      const [exercises, workouts, workoutExercises, sets, bpReadings, weightLogs] = await Promise.all([
+        db.exercises.count(),
+        db.workouts.count(),
+        db.workoutExercises.count(),
+        db.exerciseSets.count(),
+        db.bloodPressure.count(),
+        db.weightLogs.count(),
+      ]);
+      const [pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight] = await Promise.all([
+        db.workouts.where('syncStatus').equals('pending').count(),
+        db.workoutExercises.where('syncStatus').equals('pending').count(),
+        db.exerciseSets.where('syncStatus').equals('pending').count(),
+        db.bloodPressure.where('syncStatus').equals('pending').count(),
+        db.weightLogs.where('syncStatus').equals('pending').count(),
+      ]);
+      return {
+        exercises, workouts, workoutExercises, sets, bpReadings, weightLogs,
+        pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight,
+        pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight,
+      };
+    } catch {
+      return undefined; // keeps previous value rather than flashing fallback zeros
+    }
   }) ?? {
     exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0,
     pendingWorkouts: 0, pendingWEs: 0, pendingSets: 0, pendingBP: 0, pendingWeight: 0,
-    incompleteWorkouts: 0, incompleteDetails: [],
     pending: 0,
   };
+
+  // Expensive per-incomplete-workout detail loop, isolated so it can't gate the counts.
+  const incompleteDetails = useLiveQuery(async () => {
+    try {
+      const pendingWorkoutRows = await db.workouts.where('syncStatus').equals('pending').toArray();
+      const incompleteRows = pendingWorkoutRows.filter(w => !w.completedAt);
+      return await Promise.all(
+        incompleteRows.map(async (w) => {
+          const weRows = await db.workoutExercises.where('workoutId').equals(w.id!).toArray();
+          let setCount = 0;
+          for (const we of weRows) {
+            setCount += await db.exerciseSets.where('workoutExerciseId').equals(we.id!).count();
+          }
+          return {
+            id: w.id!,
+            date: w.date,
+            name: w.name ?? 'Untitled',
+            startedAt: w.startedAt,
+            exerciseCount: weRows.length,
+            setCount,
+          };
+        })
+      );
+    } catch {
+      return undefined;
+    }
+  }) ?? [];
+  const incompleteWorkouts = incompleteDetails.length;
 
   const handleSync = async () => {
     if (!user) return;
@@ -306,19 +316,19 @@ export function SettingsPage() {
           <div className="mt-3 p-2 rounded-lg bg-yellow-400/10 border border-yellow-400/20 text-xs text-yellow-400 space-y-0.5">
             <div className="font-semibold">{dbStats.pending} pending sync</div>
             {dbStats.pendingWorkouts > 0 && (
-              <div>• {dbStats.pendingWorkouts} workout{dbStats.pendingWorkouts !== 1 ? 's' : ''}{dbStats.incompleteWorkouts > 0 ? ` (${dbStats.incompleteWorkouts} incomplete)` : ''}</div>
+              <div>• {dbStats.pendingWorkouts} workout{dbStats.pendingWorkouts !== 1 ? 's' : ''}{incompleteWorkouts > 0 ? ` (${incompleteWorkouts} incomplete)` : ''}</div>
             )}
             {dbStats.pendingWEs > 0 && <div>• {dbStats.pendingWEs} exercise entries</div>}
             {dbStats.pendingSets > 0 && <div>• {dbStats.pendingSets} sets</div>}
             {dbStats.pendingBP > 0 && <div>• {dbStats.pendingBP} BP readings</div>}
             {dbStats.pendingWeight > 0 && <div>• {dbStats.pendingWeight} weight logs</div>}
-            {dbStats.incompleteWorkouts > 0 && (
+            {incompleteWorkouts > 0 && (
               <div className="mt-3 space-y-2">
                 <div className="text-gray-400">
-                  {dbStats.incompleteWorkouts} incomplete workout{dbStats.incompleteWorkouts !== 1 ? 's are' : ' is'} blocking the sync. Incomplete workouts should have been discarded when cancelled — these are likely leftovers.
+                  {incompleteWorkouts} incomplete workout{incompleteWorkouts !== 1 ? 's are' : ' is'} blocking the sync. Incomplete workouts should have been discarded when cancelled — these are likely leftovers.
                 </div>
                 <div className="bg-background rounded-lg p-2 space-y-2 max-h-64 overflow-y-auto">
-                  {dbStats.incompleteDetails.map((w) => (
+                  {incompleteDetails.map((w) => (
                     <div key={w.id} className="flex items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="text-gray-200 text-sm truncate">{w.date} — {w.name}</div>
