@@ -76,7 +76,14 @@ export function HealthPage() {
         </div>
       )}
 
-      {/* Quick-add buttons */}
+      {/* Week-over-week motivation card */}
+      <WeeklyProgress />
+
+      {/* Fitness summary (from Google Health / future Oura) */}
+      <FitnessSummary />
+
+      {/* Quick-add buttons — sit above History so they're next to the
+          readouts they feed into */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <button
           onClick={() => setActiveForm(activeForm === 'bp' ? null : 'bp')}
@@ -143,12 +150,6 @@ export function HealthPage() {
       {activeForm === 'alcohol' && (
         <AlcoholForm onSave={() => setActiveForm(null)} />
       )}
-
-      {/* Week-over-week motivation card */}
-      <WeeklyProgress />
-
-      {/* Fitness summary (from Google Health / future Oura) */}
-      <FitnessSummary />
 
       {/* History */}
       <HealthHistory />
