@@ -229,8 +229,9 @@ function Delta({
 }
 
 // Blood pressure gets its own row so the paired systolic/diastolic value
-// can be shown as "118/76 vs 122/78". This week's number is color-coded:
-// green if either sys or dia improved (went down), red if both got worse.
+// can be shown as "118/76 vs 122/78". Each number is colored independently
+// based on its own week-over-week delta — a mixed result (sys down, dia up)
+// reads as green/red so you can see both trends at a glance.
 function BPRow({
   sysThis, diaThis, sysPrior, diaPrior, thisCount, priorCount,
 }: {
@@ -245,16 +246,10 @@ function BPRow({
     sysThis != null && diaThis != null && sysPrior != null && diaPrior != null;
   const thinData = thisCount < 2 || priorCount < 2;
 
-  const format = (sys: number, dia: number) => `${Math.round(sys)}/${Math.round(dia)}`;
-
-  let toneClass = 'text-white';
-  if (hasBoth && !thinData) {
-    const sysDelta = Math.round(sysThis!) - Math.round(sysPrior!);
-    const diaDelta = Math.round(diaThis!) - Math.round(diaPrior!);
-    if (sysDelta === 0 && diaDelta === 0) toneClass = 'text-white';
-    else if (sysDelta < 0 || diaDelta < 0) toneClass = 'text-success'; // either improved
-    else toneClass = 'text-danger'; // both flat-or-worse, at least one worse
-  }
+  const toneFor = (delta: number): string => {
+    if (delta === 0) return 'text-white';
+    return delta < 0 ? 'text-success' : 'text-danger';
+  };
 
   return (
     <div className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-700 last:border-b-0">
@@ -269,12 +264,20 @@ function BPRow({
         </div>
       ) : thinData ? (
         <div className="text-xs text-gray-500 text-right">Log more to see trend</div>
-      ) : (
-        <div className="text-sm font-mono text-right">
-          <span className={toneClass}>{format(sysThis!, diaThis!)}</span>
-          <span className="text-gray-500"> vs {format(sysPrior!, diaPrior!)}</span>
-        </div>
-      )}
+      ) : (() => {
+        const sysNow = Math.round(sysThis!);
+        const diaNow = Math.round(diaThis!);
+        const sysWas = Math.round(sysPrior!);
+        const diaWas = Math.round(diaPrior!);
+        return (
+          <div className="text-sm font-mono text-right">
+            <span className={toneFor(sysNow - sysWas)}>{sysNow}</span>
+            <span className="text-gray-500">/</span>
+            <span className={toneFor(diaNow - diaWas)}>{diaNow}</span>
+            <span className="text-gray-500"> vs {sysWas}/{diaWas}</span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
