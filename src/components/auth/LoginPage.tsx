@@ -16,7 +16,7 @@ export function LoginPage() {
 
       <button
         onClick={signInWithGoogle}
-        className="flex items-center gap-3 bg-white text-gray-900 px-6 py-3 rounded-xl font-medium text-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-3 bg-[#ffffff] text-[#1a1a1a] px-6 py-3 rounded-xl font-medium text-lg hover:bg-[#f0ede8] transition-colors"
       >
         <svg width="20" height="20" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>

@@ -1,7 +1,8 @@
-import { Settings, LogOut, Upload, Trash2, AlertTriangle, Wrench } from 'lucide-react';
+import { Settings, LogOut, Upload, Trash2, AlertTriangle, Wrench, Moon, Sun } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import { syncAll } from '../lib/sync';
 import { importCSVData } from '../db/csv-import';
 import { db } from '../db/database';
@@ -10,6 +11,7 @@ import { GoogleHealthConnect } from '../components/settings/GoogleHealthConnect'
 
 export function SettingsPage() {
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [syncing, setSyncing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
@@ -216,6 +218,35 @@ export function SettingsPage() {
         <h1 className="text-xl font-bold text-white">Settings</h1>
       </div>
 
+      {/* Appearance */}
+      <div className="bg-surface rounded-xl p-4 mb-4">
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Appearance</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setTheme('dark')}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-lg border transition-colors ${
+              theme === 'dark'
+                ? 'bg-brand/15 border-brand text-brand-light'
+                : 'border-gray-700 text-gray-400 hover:border-brand-light'
+            }`}
+          >
+            <Moon size={16} />
+            Dark
+          </button>
+          <button
+            onClick={() => setTheme('light')}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-lg border transition-colors ${
+              theme === 'light'
+                ? 'bg-brand/15 border-brand text-brand-light'
+                : 'border-gray-700 text-gray-400 hover:border-brand-light'
+            }`}
+          >
+            <Sun size={16} />
+            Light
+          </button>
+        </div>
+      </div>
+
       {/* Account */}
       <div className="bg-surface rounded-xl p-4 mb-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Account</h2>
@@ -243,9 +274,9 @@ export function SettingsPage() {
         <div className="bg-surface rounded-xl p-4 mb-4">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Sync</h2>
           {dbStats.pending > 0 && (
-            <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-yellow-400/10 border border-yellow-400/20">
-              <AlertTriangle size={14} className="text-yellow-400 shrink-0" />
-              <span className="text-xs text-yellow-400">
+            <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-warning/10 border border-warning/30">
+              <AlertTriangle size={14} className="text-warning shrink-0" />
+              <span className="text-xs text-warning">
                 {dbStats.pending} unsynced change{dbStats.pending !== 1 ? 's' : ''} — sync to back up
               </span>
             </div>
@@ -325,7 +356,7 @@ export function SettingsPage() {
           ))}
         </div>
         {dbStats.pending > 0 && (
-          <div className="mt-3 p-2 rounded-lg bg-yellow-400/10 border border-yellow-400/20 text-xs text-yellow-400 space-y-0.5">
+          <div className="mt-3 p-2 rounded-lg bg-warning/10 border border-warning/30 text-xs text-warning space-y-0.5">
             <div className="font-semibold">{dbStats.pending} pending sync</div>
             {dbStats.pendingWorkouts > 0 && (
               <div>• {dbStats.pendingWorkouts} workout{dbStats.pendingWorkouts !== 1 ? 's' : ''}{incompleteWorkouts > 0 ? ` (${incompleteWorkouts} incomplete)` : ''}</div>

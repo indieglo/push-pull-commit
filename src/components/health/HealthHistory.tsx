@@ -8,8 +8,8 @@ type Tab = 'bp' | 'weight' | 'alcohol';
 
 function getBPColor(systolic: number, diastolic: number) {
   if (systolic < 120 && diastolic < 80) return 'text-success';
-  if (systolic < 130 && diastolic < 80) return 'text-yellow-400';
-  if (systolic < 140 || diastolic < 90) return 'text-orange-400';
+  if (systolic < 130 && diastolic < 80) return 'text-warning';
+  if (systolic < 140 || diastolic < 90) return 'text-warning';
   return 'text-danger';
 }
 
@@ -171,7 +171,7 @@ export function HealthHistory() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className={`text-lg font-mono font-semibold ${
-                      al.drinks === 0 ? 'text-success' : al.drinks <= 2 ? 'text-yellow-400' : 'text-orange-400'
+                      al.drinks === 0 ? 'text-success' : al.drinks <= 2 ? 'text-warning' : 'text-danger'
                     }`}>
                       {al.drinks} drink{al.drinks === 1 ? '' : 's'}
                     </span>

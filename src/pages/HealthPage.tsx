@@ -7,6 +7,7 @@ import { WeightForm } from '../components/health/WeightForm';
 import { AlcoholForm } from '../components/health/AlcoholForm';
 import { HealthHistory } from '../components/health/HealthHistory';
 import { FitnessSummary } from '../components/health/FitnessSummary';
+import { WeeklyProgress } from '../components/health/WeeklyProgress';
 
 type ActiveForm = null | 'bp' | 'weight' | 'alcohol';
 
@@ -57,17 +58,17 @@ export function HealthPage() {
       {(bpOverdue || weightOverdue) && (
         <div className="space-y-2 mb-4">
           {bpOverdue && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-400/10 border border-yellow-400/20">
-              <AlertCircle size={16} className="text-yellow-400 shrink-0" />
-              <span className="text-sm text-yellow-400">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+              <AlertCircle size={16} className="text-warning shrink-0" />
+              <span className="text-sm text-warning">
                 {bpDays === null ? 'No BP readings yet — log your first one!' : `Last BP reading was ${formatDaysAgo(bpDays)} — time for a check`}
               </span>
             </div>
           )}
           {weightOverdue && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-400/10 border border-yellow-400/20">
-              <AlertCircle size={16} className="text-yellow-400 shrink-0" />
-              <span className="text-sm text-yellow-400">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+              <AlertCircle size={16} className="text-warning shrink-0" />
+              <span className="text-sm text-warning">
                 {weightDays === null ? 'No weight entries yet — log your first one!' : `Last weigh-in was ${formatDaysAgo(weightDays)} — time to step on the scale`}
               </span>
             </div>
@@ -142,6 +143,9 @@ export function HealthPage() {
       {activeForm === 'alcohol' && (
         <AlcoholForm onSave={() => setActiveForm(null)} />
       )}
+
+      {/* Week-over-week motivation card */}
+      <WeeklyProgress />
 
       {/* Fitness summary (from Google Health / future Oura) */}
       <FitnessSummary />

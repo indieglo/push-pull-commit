@@ -41,8 +41,8 @@ export function BloodPressureForm({ onSave }: BloodPressureFormProps) {
     const dia = parseInt(diastolic);
     if (isNaN(sys) || isNaN(dia)) return null;
     if (sys < 120 && dia < 80) return { label: 'Normal', color: 'text-success' };
-    if (sys < 130 && dia < 80) return { label: 'Elevated', color: 'text-yellow-400' };
-    if (sys < 140 || dia < 90) return { label: 'High (Stage 1)', color: 'text-orange-400' };
+    if (sys < 130 && dia < 80) return { label: 'Elevated', color: 'text-warning' };
+    if (sys < 140 || dia < 90) return { label: 'High (Stage 1)', color: 'text-warning' };
     return { label: 'High (Stage 2)', color: 'text-danger' };
   };
 

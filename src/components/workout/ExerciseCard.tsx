@@ -64,7 +64,7 @@ function getWeightRecommendation(lastPerf: LastPerformance | null, isBodyweight:
 
 const EFFORT_OPTIONS: { value: EffortRating; label: string; color: string; activeColor: string }[] = [
   { value: 'easy', label: 'Easy', color: 'text-gray-500 border-gray-600', activeColor: 'text-success border-success bg-success/10' },
-  { value: 'challenging', label: 'Challenging', color: 'text-gray-500 border-gray-600', activeColor: 'text-yellow-400 border-yellow-400 bg-yellow-400/10' },
+  { value: 'challenging', label: 'Challenging', color: 'text-gray-500 border-gray-600', activeColor: 'text-warning border-warning bg-warning/10' },
   { value: 'hard', label: 'Hard', color: 'text-gray-500 border-gray-600', activeColor: 'text-danger border-danger bg-danger/10' },
 ];
 
@@ -160,7 +160,7 @@ export function ExerciseCard({
               {lastPerf.effortRating && (
                 <span className={`ml-1 ${
                   lastPerf.effortRating === 'easy' ? 'text-success' :
-                  lastPerf.effortRating === 'challenging' ? 'text-yellow-400' : 'text-danger'
+                  lastPerf.effortRating === 'challenging' ? 'text-warning' : 'text-danger'
                 }`}>
                   ({lastPerf.effortRating})
                 </span>

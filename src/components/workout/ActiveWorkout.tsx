@@ -230,7 +230,7 @@ export function ActiveWorkout({
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowIncompleteWarning(false)} />
           <div className="relative bg-surface rounded-2xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle size={20} className="text-yellow-400" />
+              <AlertTriangle size={20} className="text-warning" />
               <h3 className="text-lg font-semibold text-white">Incomplete Sets</h3>
             </div>
             <ul className="text-sm text-gray-400 mb-4 space-y-1">

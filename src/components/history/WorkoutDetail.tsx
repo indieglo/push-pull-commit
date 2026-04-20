@@ -78,7 +78,7 @@ export function WorkoutDetail({ workoutId, onBack }: WorkoutDetailProps) {
             {workoutExercise.effortRating && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 workoutExercise.effortRating === 'easy' ? 'bg-success/20 text-success' :
-                workoutExercise.effortRating === 'challenging' ? 'bg-yellow-400/20 text-yellow-400' :
+                workoutExercise.effortRating === 'challenging' ? 'bg-warning/20 text-warning' :
                 'bg-danger/20 text-danger'
               }`}>
                 {workoutExercise.effortRating}

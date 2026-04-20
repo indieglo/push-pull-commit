@@ -28,7 +28,7 @@ export function FitnessSummary() {
     return (
       <div className="bg-surface rounded-xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <Activity size={18} className="text-brand-light" />
+          <Activity size={18} className="text-info" />
           <h3 className="font-semibold text-white">Fitness</h3>
         </div>
         <p className="text-sm text-gray-500">
@@ -57,7 +57,7 @@ export function FitnessSummary() {
     <div className="bg-surface rounded-xl p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Activity size={18} className="text-brand-light" />
+          <Activity size={18} className="text-info" />
           <h3 className="font-semibold text-white">Fitness</h3>
         </div>
         <span className="text-xs text-gray-500">7-day avg</span>
@@ -65,25 +65,25 @@ export function FitnessSummary() {
 
       <div className="grid grid-cols-4 gap-2 mb-4">
         <Stat
-          icon={<Activity size={14} className="text-brand-light" />}
+          icon={<Activity size={14} className="text-info" />}
           label="Steps"
           value={formatSteps(latest.steps)}
           sub={avgSteps != null ? formatSteps(Math.round(avgSteps)) : '—'}
         />
         <Stat
-          icon={<Heart size={14} className="text-brand-light" />}
+          icon={<Heart size={14} className="text-info" />}
           label="RHR"
           value={latest.restingHeartRate != null ? `${latest.restingHeartRate}` : '—'}
           sub={avgRhr != null ? `${Math.round(avgRhr)}` : '—'}
         />
         <Stat
-          icon={<Moon size={14} className="text-brand-light" />}
+          icon={<Moon size={14} className="text-info" />}
           label="Sleep"
           value={formatSleep(latest.sleepMinutes)}
           sub={avgSleep != null ? formatSleep(Math.round(avgSleep)) : '—'}
         />
         <Stat
-          icon={<Zap size={14} className="text-brand-light" />}
+          icon={<Zap size={14} className="text-info" />}
           label="HRV"
           value={latest.heartRateVariability != null ? latest.heartRateVariability.toFixed(0) : '—'}
           sub={avgHrv != null ? avgHrv.toFixed(0) : '—'}
