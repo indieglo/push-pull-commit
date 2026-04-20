@@ -14,16 +14,23 @@ export default defineConfig({
         name: 'Push, Pull, Commit',
         short_name: 'PPC',
         description: 'Track your workouts, push your limits',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#5cb88a',
+        background_color: '#0e0e0e',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
           {
+            src: '/icons/icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+          {
             src: '/icons/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any',
           },
           {
             src: '/icons/icon-512.png',
