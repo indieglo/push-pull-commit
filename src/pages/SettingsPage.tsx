@@ -19,7 +19,7 @@ export function SettingsPage() {
   // incomplete-detail loop can't wipe them back to 0s during sync churn.
   const dbStats = useLiveQuery(async () => {
     try {
-      const [exercises, workouts, workoutExercises, sets, bpReadings, weightLogs, alcoholLogs] = await Promise.all([
+      const [exercises, workouts, workoutExercises, sets, bpReadings, weightLogs, alcoholLogs, fitnessLogs] = await Promise.all([
         db.exercises.count(),
         db.workouts.count(),
         db.workoutExercises.count(),
@@ -27,6 +27,7 @@ export function SettingsPage() {
         db.bloodPressure.count(),
         db.weightLogs.count(),
         db.alcoholLogs.count(),
+        db.fitnessDailyLogs.count(),
       ]);
       const [pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight, pendingAlcohol] = await Promise.all([
         db.workouts.where('syncStatus').equals('pending').count(),
@@ -37,7 +38,7 @@ export function SettingsPage() {
         db.alcoholLogs.where('syncStatus').equals('pending').count(),
       ]);
       return {
-        exercises, workouts, workoutExercises, sets, bpReadings, weightLogs, alcoholLogs,
+        exercises, workouts, workoutExercises, sets, bpReadings, weightLogs, alcoholLogs, fitnessLogs,
         pendingWorkouts, pendingWEs, pendingSets, pendingBP, pendingWeight, pendingAlcohol,
         pending: pendingWorkouts + pendingWEs + pendingSets + pendingBP + pendingWeight + pendingAlcohol,
       };
@@ -45,7 +46,7 @@ export function SettingsPage() {
       return undefined; // keeps previous value rather than flashing fallback zeros
     }
   }) ?? {
-    exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0, alcoholLogs: 0,
+    exercises: 0, workouts: 0, workoutExercises: 0, sets: 0, bpReadings: 0, weightLogs: 0, alcoholLogs: 0, fitnessLogs: 0,
     pendingWorkouts: 0, pendingWEs: 0, pendingSets: 0, pendingBP: 0, pendingWeight: 0, pendingAlcohol: 0,
     pending: 0,
   };
@@ -315,6 +316,7 @@ export function SettingsPage() {
             { label: 'BP Readings', count: dbStats.bpReadings },
             { label: 'Weight Logs', count: dbStats.weightLogs },
             { label: 'Alcohol Logs', count: dbStats.alcoholLogs },
+            { label: 'Fitness Days', count: dbStats.fitnessLogs },
           ].map(({ label, count }) => (
             <div key={label} className="flex justify-between text-sm px-2 py-1 rounded bg-background">
               <span className="text-gray-400">{label}</span>

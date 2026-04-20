@@ -6,6 +6,7 @@ import { BloodPressureForm } from '../components/health/BloodPressureForm';
 import { WeightForm } from '../components/health/WeightForm';
 import { AlcoholForm } from '../components/health/AlcoholForm';
 import { HealthHistory } from '../components/health/HealthHistory';
+import { FitnessSummary } from '../components/health/FitnessSummary';
 
 type ActiveForm = null | 'bp' | 'weight' | 'alcohol';
 
@@ -141,6 +142,9 @@ export function HealthPage() {
       {activeForm === 'alcohol' && (
         <AlcoholForm onSave={() => setActiveForm(null)} />
       )}
+
+      {/* Fitness summary (from Google Health / future Oura) */}
+      <FitnessSummary />
 
       {/* History */}
       <HealthHistory />

@@ -97,6 +97,19 @@ export interface AlcoholLog {
   syncStatus?: 'synced' | 'pending';
 }
 
+export interface FitnessDailyLog {
+  id?: number;
+  remoteId?: string;
+  userId?: string;
+  date: string; // ISO date
+  steps?: number | null;
+  restingHeartRate?: number | null;
+  heartRateVariability?: number | null;
+  sleepMinutes?: number | null;
+  source: string; // 'google_health', 'oura', etc.
+  syncStatus?: 'synced';
+}
+
 // For "last time" display
 export interface LastPerformance {
   date: string;

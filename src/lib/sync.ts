@@ -559,6 +559,36 @@ export async function pullFromSupabase(userId: string) {
         }));
       if (newAlcohol.length) await db.alcoholLogs.bulkAdd(newAlcohol);
     }
+
+    // Pull fitness daily logs (server-written by cron, so we upsert rather than only add new)
+    const { data: remoteFitness } = await supabase
+      .from('fitness_daily_logs')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (remoteFitness) {
+      const existingFitness = await db.fitnessDailyLogs.toArray();
+      const byRemoteId = new Map(existingFitness.filter(f => f.remoteId).map(f => [f.remoteId!, f]));
+      for (const rf of remoteFitness) {
+        const mapped = {
+          remoteId: rf.id,
+          userId: rf.user_id,
+          date: rf.date,
+          steps: rf.steps,
+          restingHeartRate: rf.resting_heart_rate,
+          heartRateVariability: rf.heart_rate_variability,
+          sleepMinutes: rf.sleep_minutes,
+          source: rf.source,
+          syncStatus: 'synced' as const,
+        };
+        const prior = byRemoteId.get(rf.id);
+        if (prior) {
+          await db.fitnessDailyLogs.update(prior.id!, mapped);
+        } else {
+          await db.fitnessDailyLogs.add(mapped);
+        }
+      }
+    }
   } catch (err) {
     console.warn('Sync pull failed:', err);
   }

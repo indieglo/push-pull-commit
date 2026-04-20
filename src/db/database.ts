@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Exercise, Workout, WorkoutExercise, ExerciseSet, BloodPressureReading, WeightLog, AlcoholLog } from '../types';
+import type { Exercise, Workout, WorkoutExercise, ExerciseSet, BloodPressureReading, WeightLog, AlcoholLog, FitnessDailyLog } from '../types';
 
 export class PushPullCommitDB extends Dexie {
   exercises!: Table<Exercise, number>;
@@ -9,6 +9,7 @@ export class PushPullCommitDB extends Dexie {
   bloodPressure!: Table<BloodPressureReading, number>;
   weightLogs!: Table<WeightLog, number>;
   alcoholLogs!: Table<AlcoholLog, number>;
+  fitnessDailyLogs!: Table<FitnessDailyLog, number>;
 
   constructor() {
     super('PushPullCommitDB');
@@ -55,6 +56,18 @@ export class PushPullCommitDB extends Dexie {
       bloodPressure: '++id, date, userId, syncStatus, remoteId',
       weightLogs: '++id, date, userId, syncStatus, remoteId, source',
       alcoholLogs: '++id, date, userId, syncStatus, remoteId',
+    });
+
+    // v6: Add fitness daily logs (Google Health, Oura, etc.)
+    this.version(6).stores({
+      exercises: '++id, name, category, syncStatus, remoteId',
+      workouts: '++id, date, name, userId, syncStatus, remoteId',
+      workoutExercises: '++id, workoutId, exerciseId, syncStatus, remoteId',
+      exerciseSets: '++id, workoutExerciseId, syncStatus, remoteId',
+      bloodPressure: '++id, date, userId, syncStatus, remoteId',
+      weightLogs: '++id, date, userId, syncStatus, remoteId, source',
+      alcoholLogs: '++id, date, userId, syncStatus, remoteId',
+      fitnessDailyLogs: '++id, date, userId, syncStatus, remoteId, source',
     });
   }
 }
