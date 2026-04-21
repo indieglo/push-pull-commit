@@ -12,23 +12,34 @@ export function WeightForm({ onSave }: WeightFormProps) {
   const [fatPercent, setFatPercent] = useState('');
   const [date, setDate] = useState(now.toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
+    if (submitting) return;
     const w = parseFloat(weight);
     if (isNaN(w) || w <= 0) return;
 
     const fat = fatPercent ? parseFloat(fatPercent) : null;
 
-    await db.weightLogs.add({
-      date,
-      weight: w,
-      fatPercent: fat,
-      source: 'manual',
-      notes: notes || undefined,
-      syncStatus: 'pending',
-    });
-
-    onSave();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await db.weightLogs.add({
+        date,
+        weight: w,
+        fatPercent: fat,
+        source: 'manual',
+        notes: notes || undefined,
+        syncStatus: 'pending',
+      });
+      onSave();
+    } catch (e) {
+      console.error('Failed to save weight entry', e);
+      const msg = e instanceof Error ? e.message : 'Unknown error saving weight';
+      setError(`Save failed: ${msg}. Try reloading the app.`);
+      setSubmitting(false);
+    }
   };
 
   const isValid = weight && parseFloat(weight) > 0;
@@ -86,12 +97,18 @@ export function WeightForm({ onSave }: WeightFormProps) {
         className="w-full bg-surface-dark border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-brand-light focus:outline-none resize-none mb-3"
       />
 
+      {error && (
+        <div className="mb-3 p-2 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+          {error}
+        </div>
+      )}
+
       <button
         onClick={handleSubmit}
-        disabled={!isValid}
+        disabled={!isValid || submitting}
         className="w-full py-2.5 rounded-lg bg-brand text-white font-medium disabled:opacity-40 transition-opacity"
       >
-        Save Weight
+        {submitting ? 'Saving…' : 'Save Weight'}
       </button>
     </div>
   );

@@ -14,23 +14,34 @@ export function BloodPressureForm({ onSave }: BloodPressureFormProps) {
   const [date, setDate] = useState(now.toISOString().split('T')[0]);
   const [time, setTime] = useState(now.toTimeString().slice(0, 5));
   const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
+    if (submitting) return;
     const sys = parseInt(systolic);
     const dia = parseInt(diastolic);
     if (isNaN(sys) || isNaN(dia)) return;
 
-    await db.bloodPressure.add({
-      date,
-      time,
-      systolic: sys,
-      diastolic: dia,
-      pulse: pulse ? parseInt(pulse) : null,
-      notes: notes || undefined,
-      syncStatus: 'pending',
-    });
-
-    onSave();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await db.bloodPressure.add({
+        date,
+        time,
+        systolic: sys,
+        diastolic: dia,
+        pulse: pulse ? parseInt(pulse) : null,
+        notes: notes || undefined,
+        syncStatus: 'pending',
+      });
+      onSave();
+    } catch (e) {
+      console.error('Failed to save BP reading', e);
+      const msg = e instanceof Error ? e.message : 'Unknown error saving reading';
+      setError(`Save failed: ${msg}. Try reloading the app.`);
+      setSubmitting(false);
+    }
   };
 
   const isValid = systolic && diastolic && parseInt(systolic) > 0 && parseInt(diastolic) > 0;
@@ -128,12 +139,18 @@ export function BloodPressureForm({ onSave }: BloodPressureFormProps) {
         className="w-full bg-surface-dark border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-brand-light focus:outline-none resize-none mb-3"
       />
 
+      {error && (
+        <div className="mb-3 p-2 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+          {error}
+        </div>
+      )}
+
       <button
         onClick={handleSubmit}
-        disabled={!isValid}
+        disabled={!isValid || submitting}
         className="w-full py-2.5 rounded-lg bg-brand text-white font-medium disabled:opacity-40 transition-opacity"
       >
-        Save Reading
+        {submitting ? 'Saving…' : 'Save Reading'}
       </button>
     </div>
   );

@@ -13,19 +13,30 @@ export function AlcoholForm({ onSave }: AlcoholFormProps) {
   const [drinks, setDrinks] = useState<string>('0');
   const [date, setDate] = useState(now.toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
+    if (submitting) return;
     const n = parseFloat(drinks);
     if (isNaN(n) || n < 0) return;
 
-    await db.alcoholLogs.add({
-      date,
-      drinks: n,
-      notes: notes || undefined,
-      syncStatus: 'pending',
-    });
-
-    onSave();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await db.alcoholLogs.add({
+        date,
+        drinks: n,
+        notes: notes || undefined,
+        syncStatus: 'pending',
+      });
+      onSave();
+    } catch (e) {
+      console.error('Failed to save alcohol entry', e);
+      const msg = e instanceof Error ? e.message : 'Unknown error saving entry';
+      setError(`Save failed: ${msg}. Try reloading the app.`);
+      setSubmitting(false);
+    }
   };
 
   const isValid = drinks !== '' && !isNaN(parseFloat(drinks)) && parseFloat(drinks) >= 0;
@@ -87,12 +98,18 @@ export function AlcoholForm({ onSave }: AlcoholFormProps) {
         className="w-full bg-surface-dark border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-brand-light focus:outline-none resize-none mb-3"
       />
 
+      {error && (
+        <div className="mb-3 p-2 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+          {error}
+        </div>
+      )}
+
       <button
         onClick={handleSubmit}
-        disabled={!isValid}
+        disabled={!isValid || submitting}
         className="w-full py-2.5 rounded-lg bg-brand text-white font-medium disabled:opacity-40 transition-opacity"
       >
-        Save Entry
+        {submitting ? 'Saving…' : 'Save Entry'}
       </button>
     </div>
   );
