@@ -16,7 +16,10 @@ function formatSteps(n: number | null | undefined): string {
 }
 
 function formatDayShort(dateStr: string): string {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' });
+  const d = new Date(dateStr + 'T00:00:00');
+  const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+  return `${monthDay} - ${weekday}`;
 }
 
 export function FitnessSummary() {
@@ -38,8 +41,8 @@ export function FitnessSummary() {
     );
   }
 
-  // Chronological (oldest → newest) for mini-chart
-  const ordered = [...recent].reverse();
+  // Reverse-chronological (most recent at top)
+  const ordered = recent;
   const latest = recent[0];
 
   // 7-day averages for context
@@ -60,7 +63,7 @@ export function FitnessSummary() {
           <Activity size={18} className="text-info" />
           <h3 className="font-semibold text-white">Fitness</h3>
         </div>
-        <span className="text-xs text-gray-500">7-day avg</span>
+        <span className="text-xs text-gray-500">Latest / 7-day avg</span>
       </div>
 
       <div className="grid grid-cols-4 gap-2 mb-4">
@@ -93,7 +96,7 @@ export function FitnessSummary() {
       <div className="space-y-1">
         {ordered.map(r => (
           <div key={r.date} className="flex items-center gap-3 text-xs">
-            <span className="w-10 text-gray-500">{formatDayShort(r.date)}</span>
+            <span className="w-24 text-gray-500">{formatDayShort(r.date)}</span>
             <span className="w-14 font-mono text-gray-300 text-right">{formatSteps(r.steps)}</span>
             <span className="w-10 font-mono text-gray-300 text-right">
               {r.restingHeartRate != null ? r.restingHeartRate : '—'}
