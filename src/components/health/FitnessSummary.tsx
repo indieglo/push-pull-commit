@@ -32,7 +32,7 @@ export function FitnessSummary() {
           <h3 className="font-semibold text-white">Fitness</h3>
         </div>
         <p className="text-sm text-gray-500">
-          No fitness data yet. Connect Google Health in Settings to pull steps, sleep, and resting heart rate.
+          No fitness data yet. Connect a fitness provider in Settings to pull steps, sleep, and resting heart rate.
         </p>
       </div>
     );

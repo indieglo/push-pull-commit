@@ -3,6 +3,12 @@ import { Activity, Check, AlertCircle, RefreshCw, Link2Off } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 
+export interface FitnessProviderConfig {
+  name: string;        // e.g. 'fitbit'
+  displayName: string; // e.g. 'Fitbit'
+  description: string; // shown when not connected
+}
+
 interface IntegrationRow {
   provider: string;
   connected_at: string;
@@ -30,7 +36,11 @@ function formatAgo(iso: string | null): string {
   return `${days}d ago`;
 }
 
-export function GoogleHealthConnect() {
+interface Props {
+  config: FitnessProviderConfig;
+}
+
+export function FitnessProviderConnect({ config }: Props) {
   const { user } = useAuth();
   const [integration, setIntegration] = useState<IntegrationRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +53,7 @@ export function GoogleHealthConnect() {
       .from('user_integrations')
       .select('provider, connected_at, last_sync_at, scope')
       .eq('user_id', user.id)
-      .eq('provider', 'google_health')
+      .eq('provider', config.name)
       .maybeSingle();
     setIntegration(data ?? null);
     setLoading(false);
@@ -51,21 +61,28 @@ export function GoogleHealthConnect() {
 
   useEffect(() => {
     loadIntegration();
+    // The OAuth callback redirects back with ?provider=<name>&status=success|error
     const params = new URLSearchParams(window.location.search);
-    const status = params.get('google_health');
-    if (status === 'success') {
-      setMessage({ type: 'success', text: 'Google Health connected!' });
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (status === 'error') {
-      setMessage({ type: 'error', text: params.get('message') || 'Connection failed' });
-      window.history.replaceState({}, '', window.location.pathname);
+    if (params.get('provider') === config.name) {
+      const status = params.get('status');
+      if (status === 'success') {
+        setMessage({ type: 'success', text: `${config.displayName} connected!` });
+      } else if (status === 'error') {
+        setMessage({ type: 'error', text: params.get('message') || 'Connection failed' });
+      }
+      // Clear the query so reload doesn't re-show the message
+      const url = new URL(window.location.href);
+      url.searchParams.delete('provider');
+      url.searchParams.delete('status');
+      url.searchParams.delete('message');
+      window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, config.name]);
 
   const handleConnect = () => {
     if (!user) return;
-    window.location.href = `/api/google-health/auth?user_id=${encodeURIComponent(user.id)}`;
+    window.location.href = `/api/fitness/${config.name}/auth?user_id=${encodeURIComponent(user.id)}`;
   };
 
   const handleSync = async () => {
@@ -75,7 +92,7 @@ export function GoogleHealthConnect() {
     try {
       const headers = await getAuthHeaders();
       if (!headers) throw new Error('Not signed in');
-      const res = await fetch('/api/google-health/sync', { method: 'POST', headers });
+      const res = await fetch(`/api/fitness/${config.name}/sync`, { method: 'POST', headers });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Sync failed');
       const { inserted, updated, error } = json.result || {};
@@ -93,11 +110,11 @@ export function GoogleHealthConnect() {
 
   const handleDisconnect = async () => {
     if (!user) return;
-    if (!confirm('Disconnect Google Health? Synced fitness data will remain, but new data will stop syncing.')) return;
+    if (!confirm(`Disconnect ${config.displayName}? Synced fitness data will remain, but new data will stop syncing.`)) return;
     try {
       const headers = await getAuthHeaders();
       if (!headers) throw new Error('Not signed in');
-      const res = await fetch('/api/google-health/disconnect', { method: 'POST', headers });
+      const res = await fetch(`/api/fitness/${config.name}/disconnect`, { method: 'POST', headers });
       if (!res.ok) throw new Error('Disconnect failed');
       setIntegration(null);
       setMessage({ type: 'success', text: 'Disconnected' });
@@ -116,11 +133,11 @@ export function GoogleHealthConnect() {
             <Activity size={20} className="text-brand-light" />
           </div>
           <div>
-            <div className="text-white font-medium">Google Health</div>
+            <div className="text-white font-medium">{config.displayName}</div>
             <div className="text-xs text-gray-500">
               {loading ? 'Loading...' : integration
                 ? `Connected • last sync ${formatAgo(integration.last_sync_at)}`
-                : 'Pull steps, sleep, resting HR from Fitbit / Pixel Watch'}
+                : config.description}
             </div>
           </div>
         </div>
@@ -148,7 +165,7 @@ export function GoogleHealthConnect() {
           disabled={loading}
           className="w-full py-2.5 rounded-lg bg-brand text-white font-medium disabled:opacity-50 mt-2"
         >
-          Connect Google Health
+          Connect {config.displayName}
         </button>
       ) : (
         <div className="flex gap-2 mt-3">
@@ -171,3 +188,13 @@ export function GoogleHealthConnect() {
     </div>
   );
 }
+
+// Single source of truth for which providers ship in the UI. Add a new entry
+// here when you add a provider on the API side.
+export const FITNESS_PROVIDERS: FitnessProviderConfig[] = [
+  {
+    name: 'fitbit',
+    displayName: 'Fitbit',
+    description: 'Pull steps, sleep, resting HR, and HRV from your Fitbit account',
+  },
+];

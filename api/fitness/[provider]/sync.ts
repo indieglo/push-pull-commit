@@ -1,29 +1,32 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { fetchDailyFitness, getValidAccessToken } from '../_lib/google-health.js';
-import { getSupabaseAdmin, verifyUserToken } from '../_lib/supabase-admin.js';
+import { getSupabaseAdmin, verifyUserToken } from '../../_lib/supabase-admin.js';
+import { getProvider } from '../../_lib/fitness/registry.js';
+import { getValidAccessToken, markSynced } from '../../_lib/fitness/oauth.js';
+import type { FitnessProvider } from '../../_lib/fitness/types.js';
 
 interface SyncResult {
   userId: string;
+  provider: string;
   inserted: number;
   updated: number;
   error?: string;
 }
 
-async function syncUser(userId: string, lookbackDays = 30): Promise<SyncResult> {
+async function syncUser(provider: FitnessProvider, userId: string, lookbackDays = 30): Promise<SyncResult> {
   try {
-    const integration = await getValidAccessToken(userId);
+    const integration = await getValidAccessToken(provider, userId);
     if (!integration) {
-      return { userId, inserted: 0, updated: 0, error: 'not connected' };
+      return { userId, provider: provider.name, inserted: 0, updated: 0, error: 'not connected' };
     }
 
     const sinceDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
-    const rowsByDate = await fetchDailyFitness(integration.access_token, sinceDate);
+    const rowsByDate = await provider.fetchDailyFitness(integration.access_token, sinceDate);
 
     if (rowsByDate.size === 0) {
-      await markSynced(userId);
-      return { userId, inserted: 0, updated: 0 };
+      await markSynced(provider, userId);
+      return { userId, provider: provider.name, inserted: 0, updated: 0 };
     }
 
     const supabase = getSupabaseAdmin();
@@ -32,7 +35,7 @@ async function syncUser(userId: string, lookbackDays = 30): Promise<SyncResult> 
       .from('fitness_daily_logs')
       .select('id, date, steps, resting_heart_rate, heart_rate_variability, sleep_minutes')
       .eq('user_id', userId)
-      .eq('source', 'google_health')
+      .eq('source', provider.name)
       .in('date', dates);
 
     const existingByDate = new Map((existing ?? []).map(row => [row.date, row]));
@@ -48,7 +51,7 @@ async function syncUser(userId: string, lookbackDays = 30): Promise<SyncResult> 
         resting_heart_rate: r.restingHeartRate ?? null,
         heart_rate_variability: r.heartRateVariability ?? null,
         sleep_minutes: r.sleepMinutes ?? null,
-        source: 'google_health' as const,
+        source: provider.name,
         updated_at: new Date().toISOString(),
       };
 
@@ -69,23 +72,21 @@ async function syncUser(userId: string, lookbackDays = 30): Promise<SyncResult> 
       }
     }
 
-    await markSynced(userId);
-    return { userId, inserted, updated };
+    await markSynced(provider, userId);
+    return { userId, provider: provider.name, inserted, updated };
   } catch (err) {
-    return { userId, inserted: 0, updated: 0, error: (err as Error).message };
+    return { userId, provider: provider.name, inserted: 0, updated: 0, error: (err as Error).message };
   }
 }
 
-async function markSynced(userId: string) {
-  const supabase = getSupabaseAdmin();
-  await supabase
-    .from('user_integrations')
-    .update({ last_sync_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('provider', 'google_health');
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const providerName = typeof req.query.provider === 'string' ? req.query.provider : '';
+  const provider = getProvider(providerName);
+  if (!provider) {
+    return res.status(404).json({ error: `unknown provider: ${providerName}` });
+  }
+
+  // Cron trigger: Vercel sends Authorization: Bearer <CRON_SECRET>
   const cronSecret = process.env.CRON_SECRET;
   const auth = req.headers.authorization ?? '';
 
@@ -95,11 +96,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data: integrations } = await supabase
         .from('user_integrations')
         .select('user_id')
-        .eq('provider', 'google_health');
+        .eq('provider', provider.name);
 
       const results: SyncResult[] = [];
       for (const row of integrations ?? []) {
-        results.push(await syncUser(row.user_id));
+        results.push(await syncUser(provider, row.user_id));
       }
       return res.status(200).json({ ok: true, results });
     } catch (err) {
@@ -107,6 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // Manual trigger from the client
   if (!auth.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'unauthorized' });
   }
@@ -116,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const result = await syncUser(userId);
+    const result = await syncUser(provider, userId);
     return res.status(200).json({ ok: true, result });
   } catch (err) {
     return res.status(500).json({ error: (err as Error).message });

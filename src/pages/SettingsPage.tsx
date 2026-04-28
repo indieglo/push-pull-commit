@@ -7,7 +7,7 @@ import { syncAll } from '../lib/sync';
 import { importCSVData } from '../db/csv-import';
 import { db } from '../db/database';
 import { WithingsConnect } from '../components/settings/WithingsConnect';
-import { GoogleHealthConnect } from '../components/settings/GoogleHealthConnect';
+import { FitnessProviderConnect, FITNESS_PROVIDERS } from '../components/settings/FitnessProviderConnect';
 
 export function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -296,7 +296,9 @@ export function SettingsPage() {
         <div className="mb-4">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Integrations</h2>
           <WithingsConnect />
-          <GoogleHealthConnect />
+          {FITNESS_PROVIDERS.map(config => (
+            <FitnessProviderConnect key={config.name} config={config} />
+          ))}
         </div>
       )}
 
