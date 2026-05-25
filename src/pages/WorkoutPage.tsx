@@ -1,4 +1,4 @@
-import { Dumbbell, Play, Waves } from 'lucide-react';
+import { Dumbbell, Play, Waves, PersonStanding } from 'lucide-react';
 import { useWorkout } from '../hooks/useWorkout';
 import { useExercises } from '../hooks/useExercises';
 import { ActiveWorkout } from '../components/workout/ActiveWorkout';
@@ -7,6 +7,7 @@ import { WORKOUT_TEMPLATES } from '../db/seed';
 const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
   'Strength A': <Dumbbell size={20} />,
   'Strength B': <Dumbbell size={20} />,
+  'Mobility': <PersonStanding size={20} />,
   'Swimming': <Waves size={20} />,
 };
 

@@ -13,10 +13,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   pull: 'Pull',
   legs: 'Legs',
   core: 'Core',
+  mobility: 'Mobility',
   cardio: 'Cardio',
 };
 
-const CATEGORY_ORDER = ['push', 'pull', 'legs', 'core', 'cardio'];
+const CATEGORY_ORDER = ['push', 'pull', 'legs', 'core', 'mobility', 'cardio'];
 
 export function AddExerciseSheet({ isOpen, onClose, onSelect }: AddExerciseSheetProps) {
   const { exercisesByCategory } = useExercises();

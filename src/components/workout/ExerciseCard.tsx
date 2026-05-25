@@ -21,8 +21,16 @@ interface ExerciseCardProps {
   onUpdateEffort: (rating: EffortRating) => void;
 }
 
-// Exercises that use duration (seconds) instead of reps
-const TIMED_EXERCISES = ['plank', 'side plank'];
+// Exercises that use duration (seconds) instead of reps. Includes core holds
+// and mobility stretches that are timed-hold flexibility work rather than reps.
+const TIMED_EXERCISES = [
+  'plank',
+  'side plank',
+  'supine hamstring stretch',
+  'half-kneeling hip flexor stretch',
+  'figure-4 stretch',
+  'seated forward fold',
+];
 
 function getWeightRecommendation(lastPerf: LastPerformance | null, isBodyweight: boolean): { text: string; icon: 'up' | 'same' | 'down' } | null {
   if (!lastPerf || !lastPerf.sets.length) return null;

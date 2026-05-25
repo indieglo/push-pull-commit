@@ -2,7 +2,7 @@ export interface Exercise {
   id?: number;
   remoteId?: string;
   name: string;
-  category: 'push' | 'pull' | 'legs' | 'core' | 'cardio';
+  category: 'push' | 'pull' | 'legs' | 'core' | 'mobility' | 'cardio';
   isBodyweight: boolean;
   isCardio?: boolean; // true for swim, jog, etc. — uses duration/distance instead of sets
   isUnilateral?: boolean; // true for exercises done per side (bird dogs, curls, etc.)
