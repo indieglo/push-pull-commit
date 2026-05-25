@@ -15,6 +15,7 @@ dist-ssr
 
 # Personal workout data
 Documentation/
+exports/
 
 # Editor directories and files
 .vscode/*
