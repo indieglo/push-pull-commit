@@ -66,17 +66,20 @@ export function useWorkout() {
         }))
       );
 
-      // Add 3 empty sets for each non-cardio exercise
+      // Pre-populate empty sets. Cardio uses duration/distance instead. Mobility
+      // stretches default to a single set (one hold per side or one flow) rather
+      // than the three sets a strength lift gets.
       const workoutExs = await db.workoutExercises
         .where('workoutId').equals(workoutId).toArray();
 
       for (const we of workoutExs) {
         const exercise = await db.exercises.get(we.exerciseId);
-        if (exercise?.isCardio) continue; // Cardio uses duration/distance, not sets
+        if (exercise?.isCardio) continue;
 
+        const initialSetCount = exercise?.category === 'mobility' ? 1 : 3;
         const lastPerf = await getLastPerformance(we.exerciseId);
 
-        for (let s = 0; s < 3; s++) {
+        for (let s = 0; s < initialSetCount; s++) {
           const lastSet = lastPerf?.sets[s];
           await db.exerciseSets.add({
             workoutExerciseId: we.id!,
@@ -113,10 +116,12 @@ export function useWorkout() {
 
     const exercise = await db.exercises.get(exerciseId);
 
-    // Skip set creation for cardio exercises
+    // Skip set creation for cardio exercises. Mobility stretches default to 1
+    // set instead of the 3 a strength exercise gets.
     if (!exercise?.isCardio) {
+      const initialSetCount = exercise?.category === 'mobility' ? 1 : 3;
       const lastPerf = await getLastPerformance(exerciseId);
-      for (let s = 0; s < 3; s++) {
+      for (let s = 0; s < initialSetCount; s++) {
         const lastSet = lastPerf?.sets[s];
         await db.exerciseSets.add({
           workoutExerciseId: weId as number,
